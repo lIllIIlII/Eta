@@ -33,7 +33,7 @@ private class StartupSplash(
 
     fun install() {
         activity.lifecycle.addObserver(this)
-        // 外观配置异步读取完成后才允许首帧，避免系统启动画面先退到空白窗口。
+
         content.viewTreeObserver.addOnPreDrawListener(this)
         activity.splashScreen.setOnExitAnimationListener(::onExit)
     }
@@ -70,13 +70,13 @@ private class StartupSplash(
         val iconAlpha = icon?.alpha ?: 1f
         val animator = ValueAnimator.ofFloat(1f, 0f).apply {
             duration = activity.resources.getInteger(R.integer.splash_exit_duration).toLong()
-            // ValueAnimator 会自行应用系统倍率；首页就绪较晚时仍保留完整的短过渡。
+
             startDelay = (remaining / durationScale).toLong().minus(duration).coerceAtLeast(0L)
             interpolator = AnimationUtils.loadInterpolator(activity, R.interpolator.splash_exit)
             addUpdateListener {
                 val opacity = it.animatedValue as Float
                 background.alpha = (backgroundAlpha * opacity).roundToInt()
-                // 图标可能由独立 Surface 绘制，单独赋绝对透明度，避免父层透明度逐帧累乘。
+
                 icon?.alpha = iconAlpha * opacity
             }
             addListener(object : AnimatorListenerAdapter() {

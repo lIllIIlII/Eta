@@ -704,8 +704,7 @@ internal class RootShellDeviceController(
 
     private fun captureScreenshot(): ScreenCapture {
         val excludedPackages = screenshotExcludedPackages()
-        // 优先用无障碍截图：takeScreenshotOfWindow 逐窗口过滤 TYPE_ACCESSIBILITY_OVERLAY，
-        // 天然排除浮层（glow/orb/bubble 等），对 Agent 透明
+
         val service = AgentAccessibilityService.current()
         if (service != null) {
             val captureStartedAt = SystemClock.elapsedRealtime()
@@ -785,7 +784,7 @@ internal class RootShellDeviceController(
         logger.debug {
             "Agent device action=capture_screenshot outcome=fallback source=root"
         }
-        // 无需排除入口窗口时才回退 root screencap；否则宁可返回无图，也不把错误浮窗交给模型。
+
         val result = runSuBytes("screencap -p", timeoutSeconds = 8)
         if (result.exitCode != 0 || result.output.isEmpty()) {
             logger.warn(
@@ -1016,10 +1015,6 @@ internal class RootShellDeviceController(
         return matched?.let { node -> ResolvedUiAutomatorNode(node, currentNodes) }
     }
 
-    /**
-     * Root 滚动只能用滚动前后都唯一存在的稳定节点证明方向；任意树变化不足以证明滚动。
-     * 屏幕内容向上移动代表滚动位置向下，因此最后要反转节点位移符号。
-     */
     private fun inferRootScrollDelta(
         beforeNodes: List<UiNode>,
         afterNodes: List<UiNode>,

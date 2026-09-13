@@ -5,7 +5,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.ceil
 
-/** usage 只校准同一模型的请求估算，不把累计计费用量当作窗口占用。 */
 internal class AgentContextBudget(private val window: Int?) {
     private var calibration = 1.0
 

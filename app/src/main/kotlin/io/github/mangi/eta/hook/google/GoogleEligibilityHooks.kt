@@ -23,8 +23,7 @@ internal object GoogleEligibilityHooks {
     ): HookInstallation {
         val hooks = HookRegistrar(module, rootLogger, "GoogleEligibility")
         return hooks.install {
-            // 资格补齐与机型伪装同属"让 Google App 认为设备具备资格"的一件事，
-            // 作为一圈即搜的底层依赖始终执行。
+
             hookSystemProperties(hooks)
             hookPackageManagerFeatures(hooks, classLoader)
         }

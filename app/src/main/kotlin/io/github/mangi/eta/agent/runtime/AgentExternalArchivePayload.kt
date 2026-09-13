@@ -3,13 +3,6 @@ package io.github.mangi.eta.agent.runtime
 import io.github.mangi.eta.data.model.ReasoningEffort
 import org.json.JSONObject
 
-/**
- * Generic handoff payload for runs initiated outside the first-party Agent UI.
- *
- * Entry adapters may include their own opaque adapter payload, but the core UI
- * only reads the archive fields below. This keeps app-specific adapter details
- * out of the Agent conversation model.
- */
 internal data class AgentExternalArchivePayload(
     val userText: String,
     val conversationKey: String,

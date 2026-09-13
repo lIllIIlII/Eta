@@ -36,7 +36,7 @@ internal object PowerHooks {
     ): HookInstallation {
         val hooks = HookRegistrar(module, rootLogger, "Power")
         return hooks.install {
-            // 当前机型实测证明 OplusSpeechHandler 是必要路径，目标在热路径即时读取。
+
             hookOplusSpeechHandler(hooks, classLoader)
         }
     }
@@ -100,7 +100,7 @@ internal object PowerHooks {
                         phoneWindowManager = pwm,
                         source = "OplusSpeechHandler"
                     )
-                    // Activity 兜底能处理本次触发，但仍需后台修复首选 voiceinteraction 路径。
+
                     scheduleBackgroundRecovery(
                         handler = handler,
                         logger = logger,
@@ -110,7 +110,7 @@ internal object PowerHooks {
                     if (activityStarted) {
                         null
                     } else {
-                        // 当前触发不等待后台修复；所有快速路径失败后立即回退小布。
+
                         chain.proceed()
                     }
                 }

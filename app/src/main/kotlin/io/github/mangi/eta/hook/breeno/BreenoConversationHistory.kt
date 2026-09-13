@@ -14,10 +14,6 @@ internal object BreenoConversationHistory {
         val content: String,
     )
 
-    /**
-     * 小布 DataCenter 已经保存当前房间的展示顺序，这里只投影文本轮次。
-     * 当前问句由 RunRequest.prompt 单独传入，必须从 history 中排除。
-     */
     fun build(
         entries: Iterable<Entry>,
         currentRecordId: String,

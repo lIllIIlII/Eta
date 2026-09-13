@@ -2,11 +2,6 @@ package io.github.mangi.eta.agent.browser
 
 import org.json.JSONObject
 
-/**
- * Agent 浏览器注入页面的读取与交互脚本。
- *
- * DOM 遍历保留节点、时间、字段和输出上限，避免网页规模导致 Binder 或模型上下文溢出。
- */
 internal object BrowserDomScripts {
     fun wrap(body: String): String =
         """

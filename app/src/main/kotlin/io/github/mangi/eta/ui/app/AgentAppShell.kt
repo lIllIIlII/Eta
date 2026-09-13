@@ -49,14 +49,6 @@ import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.window.WindowListPopup
 
-/**
- * Agent App 统一壳层。
- *
- * - 负责全局 Scaffold、状态栏/横向安全边距、顶层工具栏。
- * - 首页工具栏只保留历史入口与溢出菜单（新建对话、终端、浏览器），保持聊天舞台干净。
- * - 非首页子路由统一提供返回按钮与标题，避免每个页面各自像独立设置页。
- * - Settings 由标准二级页骨架自己提供 TopAppBar，壳层在此路由不重复绘制。
- */
 @Composable
 fun AgentAppShell(
     currentRoute: AppRoute?,
@@ -203,7 +195,7 @@ private fun AgentTopBar(
     }
 
     if (isHome) {
-        // 首页聊天舞台保持紧凑；二级内容页统一使用可折叠大标题。
+
         SmallTopAppBar(
             title = titleForRoute(route),
             color = color,
@@ -224,10 +216,6 @@ private fun AgentTopBar(
 
 private val TopBarMenuIconSize = 20.dp
 
-/**
- * 首页顶栏溢出菜单。WindowListPopup 以父布局为锚点，因此与触发按钮包在同一个 Box 中，
- * 弹层从按钮下方右对齐展开。
- */
 @Composable
 private fun TopBarOverflowMenu(
     onNewConversation: () -> Unit,

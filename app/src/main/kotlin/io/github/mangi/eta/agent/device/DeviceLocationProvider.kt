@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.SystemClock
 
-/** 按需读取系统已有的最近位置，不持续监听，也不主动唤醒 GPS。 */
 internal object DeviceLocationProvider {
     enum class AccessState {
         DENIED,

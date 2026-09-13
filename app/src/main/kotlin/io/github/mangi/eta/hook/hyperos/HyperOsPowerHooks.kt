@@ -34,7 +34,7 @@ internal object HyperOsPowerHooks {
                     continue
                 }
                 intercept(id, method, "ShortCutActionsUtils.triggerFunction/${signature.size}") { chain ->
-                    // 同时匹配功能与来源，不能把关机菜单、SOS 或其他快捷动作改成助理。
+
                     if (!HyperOsPowerPolicy.isAssistantShortcut(chain.getArg(0) as? String, chain.getArg(1) as? String)) {
                         return@intercept chain.proceed()
                     }

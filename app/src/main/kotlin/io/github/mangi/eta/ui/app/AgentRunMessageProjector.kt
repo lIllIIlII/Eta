@@ -16,7 +16,6 @@ internal class AgentRunMessageProjector(
 ) {
     private val thinkingStartedAt = mutableMapOf<String, Long>()
 
-    /** 回放从该 run 的空轨迹重建；仅重排有回放事件的补充输入，旧 handoff 独有的输入必须保留。 */
     fun resetForReplay(
         runId: String,
         messages: List<AgentChatMessageUi>,
@@ -198,7 +197,6 @@ internal class AgentRunMessageProjector(
             }
         }
 
-    /** 终态不依赖各块结束事件全部到齐；缺少工具结果时只能标为未知，不能推断执行成功。 */
     fun finalizeRun(runId: String, messages: List<AgentChatMessageUi>): List<AgentChatMessageUi> =
         finalizeText(runId, finalizeThinking(runId, messages)).map { message ->
             if (
@@ -264,8 +262,7 @@ internal class AgentRunMessageProjector(
         round: Int,
         messages: List<AgentChatMessageUi>,
     ): List<AgentChatMessageUi> {
-        // 定稿时裁掉尾部空白：模型输出常以换行收尾，Markdown 渲染会把每个尾部
-        // 换行节点变成一段固定间距，在正文与后续工具卡片之间形成莫名的空行。
+
         return messages.map { message ->
             if (message is AgentMessageUi && isAssistantMessageForRound(message.id, runId, round)) {
                 message.copy(
@@ -305,8 +302,7 @@ internal class AgentRunMessageProjector(
         event: AgentEvent.ToolStarted,
         messages: List<AgentChatMessageUi>,
     ): List<AgentChatMessageUi> {
-        // 工具执行发生在对应 assistant 工具块完整返回之后；此时直接追加即可保留
-        // 工具前说明、工具活动与下一轮结果的真实时间顺序。
+
         val message = ToolActivityMessageUi(
             id = toolActivityMessageId(runId, event.round, event.toolCallId),
             toolName = event.name,
@@ -324,7 +320,7 @@ internal class AgentRunMessageProjector(
         messages: List<AgentChatMessageUi>,
     ): List<AgentChatMessageUi> {
         val targetId = toolActivityMessageId(runId, event.round, event.toolCallId)
-        // success 字段优先；旧版本 Runtime/归档事件缺省时回退到摘要文本判断
+
         val status = when (event.success) {
             true -> ToolActivityStatusUi.Success
             false -> ToolActivityStatusUi.Failed
@@ -509,10 +505,7 @@ internal class AgentRunMessageProjector(
         "$runId-tool-$round-${toolCallId.ifBlank { "unknown" }}"
 
     companion object {
-        /**
-         * 手动压缩 run 的结果与压缩事件共用同一条时间线标记：事件标记已携带压缩前后的
-         * token 信息，成功时原样保留；仍在进行中、失败或事件缺失时才改写或补写。
-         */
+
         fun mergeCompactionResultNotice(
             runId: String,
             messages: List<AgentChatMessageUi>,
@@ -541,7 +534,6 @@ internal class AgentRunMessageProjector(
             }
         }
 
-        /** 终态只能补全最后一次重试之后的回答，不能覆盖已标记失败的半截输出。 */
         fun resultTargetIndex(
             runId: String,
             messages: List<AgentChatMessageUi>,

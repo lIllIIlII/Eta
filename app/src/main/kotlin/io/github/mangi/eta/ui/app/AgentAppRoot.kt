@@ -93,9 +93,6 @@ import top.yukonga.miuix.kmp.nav.core.rememberNavSystemCornerRadius
 import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-/**
- * Agent App 根组件：持有本地导航栈，并把 Screen actions 交给 [AgentAppState]。
- */
 @Composable
 fun AgentAppRoot(
     assistantConversationKey: String? = null,
@@ -450,7 +447,7 @@ fun AgentAppRoot(
                         agentState.startCharacterConversation(binding, greeting)
                         conversationPaneOpen = false
                         navigator.popToHome()
-                        // 开始新故事直接呈现首页；重置导航呈现态，避免多层退栈扫过角色列表。
+
                         navigationResetKey++
                     }
                 }

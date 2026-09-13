@@ -413,7 +413,7 @@ class SkillPackageInstallerTest {
             service.listSkillsForManagement(forceRefresh = true)
             fail("Expected unsafe lock directory to fail closed")
         } catch (_: IOException) {
-            // 预期在创建 install.lock 之前拒绝 symlink 工作目录。
+
         }
         assertTrue(external.listFiles().orEmpty().isEmpty())
     }

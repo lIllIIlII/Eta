@@ -83,7 +83,7 @@ internal object RoleplayConversationReducer {
             },
             roleplayMessages = state.roleplayMessages.copy(revisions = state.roleplayMessages.revisions + (id to revision)),
         )
-        // 编辑旧正文后从完整历史重建模型投影，原 journal 和真实工具批次保持不变。
+
         return decorate(updated.copy(history = projectJournal(updated)))
     }
 

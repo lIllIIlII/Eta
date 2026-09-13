@@ -2,14 +2,6 @@ package io.github.mangi.eta.agent.overlay
 
 import io.github.mangi.eta.agent.runtime.AgentEvent
 
-/**
- * Decides when the system-level operation overlay should become visible.
- *
- * Chat, reasoning, shell diagnostics, file reads, skill reads and app search
- * all have good homes in the main conversation UI. The global overlay is
- * reserved for tools that actively inspect or drive the foreground Android
- * interface.
- */
 internal object AgentOverlayVisibilityPolicy {
     fun shouldRevealFor(event: AgentEvent): Boolean = when (event) {
         is AgentEvent.AssistantBlockStart ->

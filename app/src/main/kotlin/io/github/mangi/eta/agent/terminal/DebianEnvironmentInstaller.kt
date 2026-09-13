@@ -54,7 +54,6 @@ internal sealed interface DebianInstallResult {
     data class Failed(val stage: DebianInstallStage, val code: String? = null, val message: String? = null) : DebianInstallResult
 }
 
-/** 下载固定版本的 Debian glibc rootfs；Android 内核、挂载和会话仍由 Eta 复用。 */
 internal class DebianEnvironmentInstaller(
     private val context: Context,
     httpClient: OkHttpClient = VerifiedArtifactDownloader.defaultHttpClient(),
@@ -314,7 +313,6 @@ internal class DebianEnvironmentInstaller(
             "xz-utils", "zip", "zstd", "fd-find",
         )
 
-        /** 真机链路只保留一个国内镜像和官方源，避免慢镜像串行拖长安装。 */
         internal val APT_MIRRORS = listOf(
             DebianAptMirror(
                 id = "tuna",
@@ -328,7 +326,6 @@ internal class DebianEnvironmentInstaller(
             ),
         )
 
-        /** 逐个尝试镜像并把成功者写回 sources.list，后续 apt 操作复用它。 */
         internal fun aptMirrorScript(): String = "#!/bin/sh\n${aptMirrorScriptBody()}"
 
         private fun aptMirrorScriptBody(): String = buildString {

@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 
-/** 在用户启动后台任务时首次询问；拒绝通知不阻止任务，后续可从权限页手动设置。 */
 @Composable
 internal fun rememberExecutionNotificationRequest(): () -> Unit {
     val context = LocalContext.current

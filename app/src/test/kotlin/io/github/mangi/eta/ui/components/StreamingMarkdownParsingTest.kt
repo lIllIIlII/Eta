@@ -28,7 +28,7 @@ class StreamingMarkdownParsingTest {
             targets = targets,
             parse = { target ->
                 parseCount += 1
-                // 每次解析尚未返回时就收到下一批内容，模拟生产速度持续超过解析速度。
+
                 if (parseCount < 20) {
                     targets.send(target.copy(content = target.content + chunk))
                 } else {

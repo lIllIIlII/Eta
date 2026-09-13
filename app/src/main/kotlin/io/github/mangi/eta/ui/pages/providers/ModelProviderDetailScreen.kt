@@ -213,7 +213,7 @@ private fun ProviderConfigTab(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            // 低层 MiuixScaffold 只负责把顶栏 Insets 传给调用方，输入法 Insets 由列表自行消费。
+
             .imePadding()
             .scrollEndHaptic()
             .overScrollVertical()
@@ -383,7 +383,7 @@ private fun ProviderConfigTab(
         }
 
         item(key = "actions") {
-            // 操作分层：主按钮实心独占，次要操作降级为文字按钮，与弹窗按钮语言一致
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

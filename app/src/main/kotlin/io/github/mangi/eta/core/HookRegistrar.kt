@@ -58,7 +58,6 @@ internal data class HookInstallation(
     }
 }
 
-/** 安装报告的纯状态账本，不持有框架对象。 */
 internal class HookInstallJournal(private val group: String) {
     private val entries = mutableListOf<HookInstallEntry>()
 
@@ -103,9 +102,6 @@ internal class HookInstallJournal(private val group: String) {
     }
 }
 
-/**
- * 单个功能域的 Hook 注册器。这里只处理 API 注册与安装诊断，目标定位仍由功能域负责。
- */
 internal class HookRegistrar(
     private val module: XposedModule,
     logger: ModuleLogger,
@@ -117,12 +113,9 @@ internal class HookRegistrar(
     private val handles = mutableListOf<XposedInterface.HookHandle>()
     private val registrationKeys = mutableSetOf<RegistrationKey>()
 
-    /**
-     * 在功能组边界内完成安装。异常发生前已经注册的 Hook 仍会保留在报告和句柄集合中。
-     */
     fun install(block: HookRegistrar.() -> Unit): HookInstallation {
         journal.capture(block = { block() }) { exception ->
-            // XposedFrameworkError 属于 Error，不会被功能组隔离层吞掉。
+
             logger.error("Hook 组安装失败", exception)
         }
         return finish()
@@ -155,7 +148,7 @@ internal class HookRegistrar(
             logger.debug { "已安装 Hook: $description" }
             handle
         } catch (exception: Exception) {
-            // HookFailedError 属于 Error，不会进入这里，必须继续交给框架处理。
+
             registrationKeys.remove(registrationKey)
             journal.failed(id, description, exception.javaClass.simpleName)
             logger.error("安装 Hook 失败: $description", exception)

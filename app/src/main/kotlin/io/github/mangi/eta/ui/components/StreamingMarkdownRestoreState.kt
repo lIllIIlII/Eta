@@ -4,7 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 
-/** 恢复动画的边界由已排版的内容决定，旧页面的布局回调不能解除新一轮暂停。 */
 internal class StreamingMarkdownRestoreState {
     var generation by mutableIntStateOf(0)
         private set

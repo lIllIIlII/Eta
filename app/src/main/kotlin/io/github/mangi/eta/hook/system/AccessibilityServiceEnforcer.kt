@@ -20,12 +20,6 @@ import io.github.mangi.eta.core.ModuleLogger
 import io.github.mangi.eta.core.safeLogType
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * 在 system_server 存活期间按用户选择保持 Eta 无障碍服务可用。
- *
- * 保护默认关闭；开启后只维护 owner 用户中的 Eta 组件与总开关，始终保留其他服务。
- * 所有工作复用 Android 的 BackgroundThread，不创建额外线程，也不做周期轮询。
- */
 internal class AccessibilityServiceEnforcer(
     private val handler: Handler,
     private val logger: ModuleLogger,
@@ -232,7 +226,7 @@ internal class AccessibilityServiceEnforcer(
                         addAction(Intent.ACTION_LOCKED_BOOT_COMPLETED)
                         addAction(Intent.ACTION_BOOT_COMPLETED)
                         addAction(Intent.ACTION_USER_UNLOCKED)
-                        // 回到解锁态时确认一次真实连接，稳定期间不轮询。
+
                         addAction(Intent.ACTION_USER_PRESENT)
                     },
                     null,
@@ -463,8 +457,7 @@ internal class AccessibilityServiceEnforcer(
         )
         if (!containsAccessibilityService(currentServices, SERVICE_COMPONENT.flattenToString())) {
             if (restoreMissingImmediately) {
-                // GUI 工具已经在等待本次恢复，不能被此前排队的 30 秒设置退避拖到超时。
-                // 这里只响应经过协议版本与 UID 校验的显式请求；常规设置争抢仍遵守退避。
+
                 enforce(context, "runtime_recovery_missing_service")
                 if (isExpectedServiceConfigured(context)) {
                     scheduleHealthCheck(
@@ -682,9 +675,6 @@ internal class AccessibilityServiceEnforcer(
         )
     }
 
-    /**
-     * Settings 没有公开 CAS；缺失时再读一次最新快照，尽量不覆盖同时启用的其他服务。
-     */
     private fun mergeLatestAccessibilitySetting(resolver: ContentResolver): String? {
         val initialValue = Settings.Secure.getString(
             resolver,
@@ -866,9 +856,6 @@ internal data class AccessibilityRepairAttempt(
     val disabledDurationMs: Long,
 )
 
-/**
- * 连续失败时最多尝试三轮，再冷却一分钟，避免服务持续崩溃时形成无限拉起循环。
- */
 internal class AccessibilityRepairLimiter(
     disabledDurationsMs: LongArray = longArrayOf(500L, 1_000L, 2_000L),
     private val cooldownMs: Long = 60_000L,
@@ -910,9 +897,6 @@ internal class AccessibilityRepairLimiter(
     }
 }
 
-/**
- * OEM 持续反删设置时逐步退避到 30 秒；稳定一分钟后恢复快速响应。
- */
 internal class AccessibilityRestoreBackoff(
     delaysMs: LongArray = longArrayOf(300L, 1_000L, 5_000L, 30_000L),
     private val stableWindowMs: Long = 60_000L,

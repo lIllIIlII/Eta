@@ -34,9 +34,6 @@ internal fun buildColorOsMemorySnapshotCommand(source: String, snapshot: File): 
     }
 }
 
-/**
- * 优先让小布记忆 Hook 在目标进程内执行只读查询；Hook 不可用时兼容旧的 Root 快照路径。
- */
 internal class AgentColorOsMemoryTools(
     private val context: Context,
     private val root: BoundedRootCommandExecutor,

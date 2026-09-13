@@ -148,7 +148,7 @@ internal object BreenoHooks {
         capacity = HANDLED_RUN_ID_CAPACITY,
         ttlMillis = HANDLED_RUN_ID_TTL_MS,
     )
-    // 只有已经展示或明确废弃的结果才能进入 ACK 重扫，避免交付过程中被提前确认。
+
     private val acknowledgeableRuntimeRunIds = BoundedRunIdSet(
         capacity = HANDLED_RUN_ID_CAPACITY,
         ttlMillis = HANDLED_RUN_ID_TTL_MS,
@@ -1095,7 +1095,7 @@ internal object BreenoHooks {
         if (runId.isBlank()) return
         handledRuntimeRunIds.add(runId)
         acknowledgeableRuntimeRunIds.add(runId)
-        // 新的交付事件可以重新唤醒此前耗尽的有限重试；内部失败回队不会重置预算。
+
         pendingAckRetryBudget.reset()
         val enqueueResult = pendingRuntimeAcks.enqueue(runId)
         if (enqueueResult == PendingAckState.EnqueueResult.OVERFLOW) {

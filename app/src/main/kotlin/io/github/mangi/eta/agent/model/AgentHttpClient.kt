@@ -3,11 +3,6 @@ package io.github.mangi.eta.agent.model
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
-/**
- * 模块全局 OkHttp 客户端。
- *
- * 模型流与普通 HTTP 请求共享连接池，但独立设置读取等待与重试策略。
- */
 internal object AgentHttpClient {
 
     private const val CONNECT_TIMEOUT_MS = 15_000L

@@ -94,7 +94,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-// Miuix 未提供语义 success 色，沿用项目既有值；失败色走主题 error
 private val SuccessColor = Color(0xFF34C759)
 
 private const val SupplementExitDelayMs = 380L
@@ -107,7 +106,6 @@ private fun phaseAccent(phase: AgentOverlayPhase): Color = when (phase) {
     AgentOverlayPhase.FAILED -> MiuixTheme.colorScheme.error
 }
 
-// 彩虹光圈颜色（青/黄/橙/粉循环）
 private val RainbowColors = listOf(
     Color(0xFFB0F2FF),
     Color(0xFFFAFAA3),
@@ -120,12 +118,6 @@ private val RainbowColors = listOf(
     Color(0xFFB0F2FF),
 )
 
-/**
- * 屏幕四边氛围光窗口：全屏触摸穿透（FLAG_NOT_TOUCHABLE），不挡操作。
- * 窗口类型 TYPE_ACCESSIBILITY_OVERLAY，截图时被 takeScreenshotOfWindow 过滤，对 Agent 透明。
- * - RUNNING：半透明黑底压暗 + 彩虹色旋转 SweepGradient 光圈。
- * - PAUSED / FINISHED / FAILED：不绘制。
- */
 @Composable
 internal fun AgentOverlayGlow(state: AgentOverlayState) {
     val phase = state.phase
@@ -142,10 +134,9 @@ internal fun AgentOverlayGlow(state: AgentOverlayState) {
 
     Box(
         modifier = Modifier.fillMaxSize().drawBehind {
-            // 半透明黑底压暗
+
             drawRect(color = Color.Black.copy(alpha = dimAlpha))
 
-            // 彩虹光圈：SweepGradient 描边 + 模糊，全屏 RectF，旋转
             val w = size.width
             val h = size.height
             val cx = w / 2f
@@ -176,10 +167,6 @@ internal fun AgentOverlayGlow(state: AgentOverlayState) {
     )
 }
 
-/**
- * 助手光球窗口：始终显示在屏幕右侧中下，点击展开/收起小气泡。
- * 独立小窗口（WRAP_CONTENT），不遮挡页面操作。
- */
 @Composable
 internal fun AgentOverlayOrb(
     state: AgentOverlayState,
@@ -205,8 +192,7 @@ internal fun AgentOverlayOrb(
             animationSpec = tween(durationMillis = 150)
         ) + fadeOut(animationSpec = tween(durationMillis = 150)),
     ) {
-        // 点击直接交给 Service 侧 toggle，不在 Compose 协程作用域里做延迟动作，
-        // 避免 scope 取消导致浮层残留。
+
         CollapsedAgentOrb(state = state, onExpand = onToggleCollapse)
     }
 }
@@ -216,10 +202,6 @@ private fun CollapsedAgentOrb(state: AgentOverlayState, onExpand: () -> Unit) {
     AssistantOrb(phase = state.phase, onClick = onExpand)
 }
 
-/**
- * 助手光球：外层径向光晕 + 实心球体 + 高光点。
- * 运行中光晕呼吸，暂停/完成/失败静止，颜色随阶段变化。
- */
 @Composable
 private fun AssistantOrb(
     phase: AgentOverlayPhase,
@@ -244,7 +226,7 @@ private fun AssistantOrb(
             .drawBehind {
                 val outer = size.minDimension
                 val center = Offset(outer / 2f, outer / 2f)
-                // 外光晕
+
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(accent.copy(alpha = 0.5f * haloAlpha), Color.Transparent),
@@ -252,7 +234,7 @@ private fun AssistantOrb(
                         radius = outer / 2f,
                     )
                 )
-                // 球体
+
                 val ballRadius = outer * 0.3f
                 drawCircle(
                     brush = Brush.radialGradient(
@@ -263,7 +245,7 @@ private fun AssistantOrb(
                     radius = ballRadius,
                     center = center,
                 )
-                // 高光
+
                 drawCircle(
                     color = Color.White.copy(alpha = 0.55f),
                     radius = ballRadius * 0.3f,
@@ -273,10 +255,6 @@ private fun AssistantOrb(
     )
 }
 
-/**
- * 运行时小气泡窗口：WRAP_CONTENT，跟随光球，窗口外触摸穿透。
- * 一句话状态 + 动作按钮 + 可展开补充输入。结束时由 Service 撤掉、改显结果卡片。
- */
 @Composable
 internal fun AgentOverlayBubble(
     state: AgentOverlayState,
@@ -360,7 +338,7 @@ internal fun AgentOverlayBubble(
                 color = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f)
             ),
         ) {
-            // 阶段色由圆点承载，状态文字保持中性；运行中圆点呼吸，暂停/结束静止
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -459,7 +437,6 @@ internal fun AgentOverlayBubble(
     }
 }
 
-/** 运行中状态圆点的呼吸透明度；其他阶段不持有帧动画。 */
 @Composable
 private fun rememberStatusDotPulse(active: Boolean): Float {
     if (!active) return 1f
@@ -578,10 +555,6 @@ private fun SupplementInput(
     }
 }
 
-/**
- * 结束时半屏结果卡片窗口：Markdown 渲染完整结果，可滚动，底部对齐。
- * 窗口本身已由 Service 定为半屏尺寸，此处填满窗口。
- */
 @Composable
 internal fun AgentResultCard(
     state: AgentOverlayState,
@@ -633,7 +606,7 @@ internal fun AgentResultCard(
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    // 状态行降级为圆点 + 灰色小字，关闭用幽灵图标，视觉重心留给内容
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -651,7 +624,7 @@ internal fun AgentResultCard(
                             fontSize = 13.sp,
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        // 关闭直接交给 Service，不经 Compose 协程延迟
+
                         IconButton(
                             onClick = onClose,
                             backgroundColor = Color.Transparent,
@@ -670,7 +643,6 @@ internal fun AgentResultCard(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Markdown 结果，可滚动
                     val markdownState = rememberMarkdownState(content = content, retainState = true)
                     val typography = markdownTypography(
                         h1 = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = textColor),

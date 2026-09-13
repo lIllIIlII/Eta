@@ -20,14 +20,6 @@ import kotlinx.serialization.Serializable
 import java.io.File
 import kotlinx.serialization.json.Json
 
-/**
- * AgentRuntime 跨进程通信协议。
- *
- * 入口进程通过 bind + Messenger 与模块自身进程的 [AgentRuntimeService] 通信：
- * 发送一次运行请求，接收事件流和最终结果。
- *
- * 不引入 AIDL：结构化字段使用 [Bundle]，图片正文使用 [ParcelFileDescriptor]，避免占用 Binder 事务缓冲区。
- */
 internal object AgentRuntimeWire {
     const val MSG_READ_CONTEXT_RESULT = 15
     const val OP_CHAT = "chat"
@@ -41,44 +33,30 @@ internal object AgentRuntimeWire {
         "Agent Runtime 请求元数据过大（$sizeBytes bytes）；请缩短输入或会话历史后重试"
     )
 
-    /** bind 获取服务端 Messenger 的 Intent action。 */
     const val ACTION_BIND = "io.github.mangi.eta.agent.runtime.BIND"
 
-    // Messenger.what
-    /** client -> service：开始一次 Agent 运行，[Message.replyTo] 携带 client Messenger。 */
     const val MSG_START_RUN = 1
 
-    /** service -> client：推送一个 [AgentEvent]。 */
     const val MSG_EVENT = 2
 
-    /** service -> client：最终结果。 */
     const val MSG_RESULT = 3
 
-    /** client -> service：取消当前运行。 */
     const val MSG_CANCEL = 4
 
-    /** client -> service：确认一个最终结果已经被入口层成功展示。 */
     const val MSG_ACK_RESULT = 5
 
-    /** client -> service：拉取尚未被入口层确认展示的最终结果。 */
     const val MSG_DRAIN_RESULTS = 6
 
-    /** service -> client：返回一组尚未确认展示的最终结果。 */
     const val MSG_DRAIN_RESULTS_RESPONSE = 7
 
-    /** service -> client：请求图片已经摄取，入口进程可以关闭文件描述符并删除临时文件。 */
     const val MSG_REQUEST_INGESTED = 8
 
-    /** client -> service：查询当前仍在执行或提交终态的 run。 */
     const val MSG_QUERY_ACTIVE_RUN = 9
 
-    /** service -> client：返回当前 active runId；空字符串表示没有。 */
     const val MSG_QUERY_ACTIVE_RUN_RESPONSE = 10
 
-    /** client -> service：重新订阅指定 run 的安全事件重放、实时事件和最终结果。 */
     const val MSG_ATTACH_RUN = 11
 
-    /** service -> client：返回是否成功重新订阅指定 run。 */
     const val MSG_ATTACH_RUN_RESPONSE = 12
 
     private const val MODULE_PACKAGE = "io.github.mangi.eta"
@@ -159,7 +137,7 @@ internal object AgentRuntimeWire {
         val operation: String = OP_CHAT,
         val rewriteTargetMessageId: String? = null,
     ) {
-        // 旧入口沿用会话 handoff；无持久会话的入口以首个 run 为会话起点。
+
         val effectiveModelSessionId: String
             get() = modelSessionId.ifBlank {
                 handoff?.takeIf { it.source == AGENT_UI_HANDOFF_SOURCE }
@@ -168,9 +146,6 @@ internal object AgentRuntimeWire {
             }
     }
 
-    /**
-     * 单张图片在 IPC 层的表示。远程 URL 可直接放入 Bundle，本地或内联图片只传只读文件描述符。
-     */
     data class WireImage(
         val remoteUrl: String? = null,
         val fileDescriptor: ParcelFileDescriptor? = null,
@@ -181,7 +156,6 @@ internal object AgentRuntimeWire {
         val source: String = "unknown",
     )
 
-    /** 接收端在后台完成图片物化前持有文件描述符；关闭后不可再次使用。 */
     class IncomingRunRequest internal constructor(
         val request: RunRequest,
         val images: List<WireImage>,
@@ -257,7 +231,6 @@ internal object AgentRuntimeWire {
         return requestBundle(request, imageBundles, payloadDirectory)
     }
 
-    /** 兼容旧客户端与协议测试；新请求不得通过 Binder 内联图片正文。 */
     fun toLegacyBundle(request: RunRequest): Bundle = requestBundle(
         request = request,
         imageBundles = request.images.map { image ->
@@ -336,7 +309,7 @@ internal object AgentRuntimeWire {
             bundle.getParcelableArrayList(KEY_IMAGES, Bundle::class.java).orEmpty().forEach { image ->
                 val descriptor = image.getParcelable(KEY_IMAGE_FD, ParcelFileDescriptor::class.java)
                 val reference = image.getString(KEY_IMAGE_URL)
-                    ?: image.getString(KEY_DATA_URL) // 兼容升级前仍内联 data URL 的入口进程。
+                    ?: image.getString(KEY_DATA_URL)
                 require((reference == null) xor (descriptor == null)) {
                     "图片传输项必须且只能包含引用或文件描述符"
                 }
@@ -361,7 +334,6 @@ internal object AgentRuntimeWire {
         }
     }
 
-    /** 拒绝或解析失败的请求不会进入 [IncomingRunRequest]，需显式释放其中的描述符。 */
     fun closeImageDescriptors(bundle: Bundle?) {
         bundle?.let(AgentWireText::close)
         runCatching {
@@ -371,7 +343,6 @@ internal object AgentRuntimeWire {
         }
     }
 
-    /** 只用于无文件描述符的旧协议读取。 */
     fun runRequestFromBundle(bundle: Bundle): RunRequest =
         incomingRunRequestFromBundle(bundle).use { incoming ->
             require(incoming.images.none { it.fileDescriptor != null }) {
@@ -598,7 +569,6 @@ internal object AgentRuntimeWire {
         }
     }
 
-    /** 将 [AgentEvent] 打包为可跨进程传递的 [Bundle]。 */
     fun eventToBundle(event: AgentEvent): Bundle = Bundle().apply {
         when (event) {
             is AgentEvent.RunStarted -> {
@@ -749,7 +719,6 @@ internal object AgentRuntimeWire {
         }
     }
 
-    /** 将 [Bundle] 还原为 [AgentEvent]，无法识别时返回 null。 */
     fun eventFromBundle(bundle: Bundle): AgentEvent? = when (bundle.getString(KEY_TYPE)) {
         "run_started" -> AgentEvent.RunStarted(
             initialImages = bundle.getInt("initial_images"),
@@ -851,7 +820,7 @@ internal object AgentRuntimeWire {
             resultSummary = bundle.getString("result_summary").orEmpty(),
             imageCount = bundle.getInt("image_count"),
             imageBytes = bundle.getInt("image_bytes"),
-            // 旧版本 Runtime 不发送 success，缺省为 null 由消费端回退判断
+
             success = if (bundle.containsKey("success")) bundle.getBoolean("success") else null,
         )
 

@@ -839,8 +839,6 @@ internal class AgentLocalTools(
         }
     }
 
-    // ==================== Skills tools ====================
-
     private fun skillsList(args: JSONObject): String {
         if (skillTreeMutationUncertain.get()) return nextTurnRequired("Skill 树")
         val indexService = skillIndexService

@@ -33,7 +33,6 @@ internal class CharacterLibraryViewModel(application: Application) : AndroidView
     val store = CharacterLibraryStore(application, viewModelScope)
 }
 
-/** 角色页面才加载资料；配置变更保留编辑草稿，文件操作均在后台完成。 */
 internal class CharacterLibraryStore(
     private val context: Context,
     private val scope: CoroutineScope,

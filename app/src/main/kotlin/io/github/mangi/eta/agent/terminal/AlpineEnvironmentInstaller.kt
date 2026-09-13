@@ -52,10 +52,6 @@ internal sealed interface AlpineInstallResult {
     data class Failed(val stage: AlpineInstallStage, val code: String? = null, val message: String? = null) : AlpineInstallResult
 }
 
-/**
- * 下载官方 Alpine minirootfs，并在 Root 授权边界内完成原子解压。
- * 下载内容先校验固定 SHA-256；安装过程不会扩大到 App 私有环境目录之外。
- */
 internal class AlpineEnvironmentInstaller(
     private val context: Context,
     httpClient: OkHttpClient = VerifiedArtifactDownloader.defaultHttpClient(),
@@ -349,13 +345,11 @@ internal class AlpineEnvironmentInstaller(
             "zstd",
         )
 
-        /** 真机链路只保留一个国内镜像，避免可访问但过慢的源阻塞后续尝试。 */
         internal val APK_MIRROR_BASE_URLS = listOf(
             "https://mirrors.aliyun.com/alpine",
             "https://dl-cdn.alpinelinux.org/alpine",
         )
 
-        /** 逐个尝试镜像并把成功者写回 repositories，后续 profile 安装会复用它。 */
         internal fun apkMirrorScript(): String = "#!/bin/sh\n${apkMirrorScriptBody()}"
 
         private fun apkMirrorScriptBody(): String = buildString {

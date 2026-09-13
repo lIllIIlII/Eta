@@ -2,7 +2,6 @@ package io.github.mangi.eta.agent.accessibility
 
 import java.util.concurrent.atomic.AtomicReference
 
-/** 防止同步桥超时返回后，尚未开始的 UI 动作又迟到执行。 */
 internal class MainThreadCallGate {
     enum class State {
         PENDING,

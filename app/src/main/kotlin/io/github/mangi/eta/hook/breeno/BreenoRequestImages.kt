@@ -93,10 +93,6 @@ internal object BreenoRequestImages {
 
     val Empty = Snapshot(emptyList())
 
-    /**
-     * CDM 图片引用按一次请求保存为一个条目，别名只作为索引。
-     * 所有变更都在同一把锁内完成，命中任一别名后会连同其他别名一起消费。
-     */
     internal class SnapshotCache(
         private val maxEntries: Int,
         private val maxAliases: Int,
@@ -241,9 +237,6 @@ internal object BreenoRequestImages {
             }
     }
 
-    /**
-     * Hook 热路径只读取已确认的图片字段并保存字符串，不读取 URI/文件，也不编码图片。
-     */
     fun capturePayload(namespace: String?, name: String?, payload: Any?): Snapshot {
         if (payload == null || namespace != "Nlp" || name != "Doc") return Empty
         val type = invokeKnownNoArgs(payload, "getType") as? String
@@ -266,10 +259,6 @@ internal object BreenoRequestImages {
         return Snapshot(inputs.toList(), failure)
     }
 
-    /**
-     * 小布 12.9.6 的图片输入先进入 AIChatViewBean.clientResult(type=104)，
-     * 不保证同时出现 Nlp.Doc。这里只读取已确认的多图结构，不遍历未知对象。
-     */
     fun isMultiImageClientResult(clientResult: Any?): Boolean =
         clientResult != null &&
             (invokeKnownNoArgs(clientResult, "getType") as? Number)?.toInt() ==
@@ -302,7 +291,6 @@ internal object BreenoRequestImages {
         return Snapshot(inputs.toList(), failure)
     }
 
-    /** 保存可能包含图片引用的文本，JSON 解析延迟到 Agent 后台线程。 */
     fun captureText(text: String?, source: String): Snapshot {
         if (text.isNullOrEmpty()) return Empty
         val imageHint = source.hasImageHint()
@@ -333,7 +321,6 @@ internal object BreenoRequestImages {
         )
     }
 
-    /** 必须从后台线程调用；这里解析 JSON 与图片引用，真正的跨进程正文由文件描述符承载。 */
     fun resolve(context: Context?, snapshot: Snapshot): Resolution {
         snapshot.failure?.let { return it }
         if (snapshot.isEmpty) return Resolution.Success(emptyList())
@@ -467,10 +454,6 @@ internal object BreenoRequestImages {
         return if (items.hasNext()) inputLimitFailure(index + 1) else null
     }
 
-    /**
-     * 图片选择器的 originUri 可能只带给小布进程一次性读取权限。
-     * 上传完成后的预处理 URL 是小布实际填入 Nlp.Doc 的引用，优先级应高于本地 Uri。
-     */
     private fun firstCompletedPreProcessUrl(uploadData: Any?): String? {
         if (uploadData == null) return null
         val value = invokeKnownNoArgs(uploadData, "getImagePreProcessResult")

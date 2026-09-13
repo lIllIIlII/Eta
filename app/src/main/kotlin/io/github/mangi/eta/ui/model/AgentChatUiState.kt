@@ -11,7 +11,7 @@ import io.github.mangi.eta.data.model.ReasoningEffort
 internal data class AgentChatUiState(
     val messages: List<AgentChatMessageUi>,
     val history: List<AgentModelClient.ConversationMessage> = emptyList(),
-    // 完整脱敏历史独立于模型投影；摘要替换 history 时不覆盖 journal。
+
     val journal: List<AgentModelClient.ConversationMessage> = emptyList(),
     val input: String,
     val isStreaming: Boolean,
@@ -71,14 +71,13 @@ enum class SystemNoticeCode(val wireValue: String) {
     }
 }
 
-/** Eta 自己生成的消息只保存稳定状态码，展示时再按当前语言解析。 */
 @Immutable
 data class SystemNoticeMessageUi(
     override val id: String,
     val code: SystemNoticeCode,
     val detail: String? = null,
     val contextTokens: Int? = null,
-    /** 仅运行期存在的进行中标记，不随消息持久化；恢复的历史通知始终视为已结束。 */
+
     val running: Boolean = false,
 ) : AgentChatMessageUi
 
@@ -107,9 +106,6 @@ data class ThinkingMessageUi(
     val collapsed: Boolean = false,
 ) : AgentChatMessageUi
 
-/**
- * 首页的 Run trace 入口卡片：展示 Agent 当前可调用的能力分组。
- */
 @Immutable
 data class RunTraceMessageUi(
     override val id: String,
@@ -122,9 +118,6 @@ data class CapabilityUi(
     val items: List<String>,
 )
 
-/**
- * 工具调用摘要：出现在消息流中，显示当前/最近一步调用了哪些工具。
- */
 @Immutable
 data class ToolSummaryMessageUi(
     override val id: String,
@@ -149,9 +142,6 @@ enum class ToolActivityStatusUi {
     Unknown,
 }
 
-/**
- * 建议语 chip 行。
- */
 @Immutable
 data class SuggestionChipsMessageUi(
     override val id: String,

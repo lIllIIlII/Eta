@@ -2,18 +2,8 @@ package io.github.mangi.eta.agent.skill
 
 import java.io.File
 
-/**
- * SKILL.md 解析器——从 YAML frontmatter + Markdown body 中提取结构化信息。
- *
- * 支持 `>` / `|` 多行块、缩进子块，以及普通的 `key: value` 行。
- * 纯字符串处理，不依赖外部 YAML 库。
- */
 internal object SkillParser {
 
-    /**
-     * 读取并解析 [skillFile]，返回 frontmatter map + body string。
-     * 文件不存在或不是文件时返回 null。
-     */
     fun parseSkillFile(skillFile: File): ParsedSkillFile? {
         if (!skillFile.exists() || !skillFile.isFile) return null
         val raw = skillFile.readText()
@@ -32,15 +22,6 @@ internal object SkillParser {
         )
     }
 
-    /**
-     * 简单 YAML frontmatter 解析。
-     *
-     * 支持：
-     * - `key: value` 单行
-     * - `key: >` 折叠多行块
-     * - `key: |` 字面多行块
-     * - `key:` 后跟缩进子块
-     */
     fun parseSimpleFrontmatter(frontmatter: String): Map<String, String> {
         if (frontmatter.isBlank()) return emptyMap()
         val lines = frontmatter.lines()
@@ -92,7 +73,6 @@ internal object SkillParser {
         return result
     }
 
-    /** 支持 YAML 常见的单双引号标量；复杂转义仍交由 Skill 作者避免使用。 */
     private fun unquoteScalar(raw: String): String {
         val value = raw.trim()
         if (value.length < 2) return value
@@ -101,7 +81,6 @@ internal object SkillParser {
         return if (quoted) value.substring(1, value.lastIndex) else value
     }
 
-    /** `>` 折叠换行、保留空行形成的段落；尾部 chomp 对元数据没有语义差异。 */
     private fun foldYamlLines(lines: List<String>): String = buildString {
         var pendingBlankLines = 0
         lines.forEach { line ->
@@ -118,9 +97,6 @@ internal object SkillParser {
         }
     }.trim()
 
-    /**
-     * 解析缩进子块为 key-value map（用于 metadata 字段）。
-     */
     fun parseIndentedBlock(raw: String): Map<String, String> {
         if (raw.isBlank()) return emptyMap()
         return raw.lines().mapNotNull { line ->
@@ -129,9 +105,6 @@ internal object SkillParser {
         }.toMap()
     }
 
-    /**
-     * 从目录名和 frontmatter name 生成规范化的 skill id。
-     */
     fun sanitizeSkillId(directoryName: String, frontmatterName: String?): String {
         val candidate = frontmatterName?.trim().takeUnless { it.isNullOrBlank() } ?: directoryName
         return candidate.lowercase()
@@ -140,9 +113,6 @@ internal object SkillParser {
             .ifBlank { directoryName.lowercase() }
     }
 
-    /**
-     * 规范化查找字符串——用于 id/name/path 匹配。
-     */
     fun normalizeSkillLookup(value: String): String =
         value.trim()
             .lowercase()

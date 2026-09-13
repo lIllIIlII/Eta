@@ -10,7 +10,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.withContext
 
-/** 列表按消息身份保留会话，条目重新挂载时接用已有解析和显现进度。 */
 internal class StreamingMarkdownState {
     var revealedContent by mutableStateOf<String?>(null)
     private val parserSession = StreamingGfmParserSession()
@@ -47,8 +46,7 @@ internal suspend fun consumeStreamingMarkdownTargets(
         }
         val parsed = parse(target)
         val newerTarget = targets.tryReceive().getOrNull()
-        // 追加分片不会使已解析的前缀失效。若每次有新目标就丢弃结果，持续高速流会
-        // 饿死显示端；只有上游纠正全文或重新打开终态时，才跳过不再适用的快照。
+
         if (newerTarget == null ||
             (newerTarget.content.startsWith(parsed.originalSource) &&
                 (!parsed.isComplete || newerTarget == target))

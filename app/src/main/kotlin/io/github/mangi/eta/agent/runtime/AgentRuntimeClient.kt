@@ -13,12 +13,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
-/**
- * 入口进程侧的 Runtime 客户端。
- *
- * 它只负责把一次 Agent 请求交给模块进程，并把事件/结果带回入口适配层；
- * 不执行模型、不执行工具、不渲染 UI。
- */
 internal class AgentRuntimeClient(
     private val context: Context,
     private val logger: AgentLogger
@@ -79,7 +73,7 @@ internal class AgentRuntimeClient(
             preparedImagesRef.set(preparedImages)
             msg.data = AgentRuntimeWire.toBundle(request, preparedImages.images, context.cacheDir)
             AgentWireText.send(serviceMessenger, msg)
-            // 最终结果或 Binder 断连负责唤醒；正常长任务不因客户端等待时长被取消。
+
             resultLatch.await()
             return resultRef.get()?.let(AgentRuntimeWire::runResultFromBundle) ?: AgentRuntimeWire.RunResult("", false, "", "Agent Runtime 未返回结果")
         } catch (interrupted: InterruptedException) {
@@ -211,7 +205,6 @@ internal class AgentRuntimeClient(
         }
     }
 
-    /** 历史一次性交给 onReplay；未指定时沿用 onEvent。后续新增事件始终交给 onEvent。 */
     fun attachRun(
         runId: String,
         onReplay: ((List<AgentEvent>) -> Unit)? = null,

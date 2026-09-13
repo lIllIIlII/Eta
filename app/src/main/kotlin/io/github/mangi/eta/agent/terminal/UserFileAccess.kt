@@ -4,7 +4,6 @@ import java.io.File
 import java.io.RandomAccessFile
 import org.json.JSONObject
 
-/** 普通身份只访问终端工作区、免 Root 环境和 Android 已授权的共享存储。 */
 internal object UserFileAccess {
     fun resolve(path: String): File {
         val workspace = File(TerminalRuntime.userWorkspacePath)

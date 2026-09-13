@@ -5,7 +5,6 @@ import io.github.mangi.eta.agent.model.AgentModelClient
 import io.github.mangi.eta.ui.model.AgentChatHomeUiState
 import io.github.mangi.eta.ui.model.UserMessageUi
 
-/** live result 与 outbox recovery 共用的 history 幂等提交点。 */
 internal object AgentRuntimeHistoryReducer {
     data class Outcome(
         val state: AgentChatHomeUiState,
@@ -34,7 +33,7 @@ internal object AgentRuntimeHistoryReducer {
             val extra = (currentTurns - validSnapshot.consumedUserTurns).coerceAtLeast(0)
             val users = state.history.indices.filter { state.history[it].role == "user" }
             val laterHistory = if (extra > 0) state.history.drop(users.takeLast(extra).first()) else emptyList()
-            // 快照与 transcript 独立落盘；崩溃时仍须接上快照之后已完成的批次。
+
             val covered = validSnapshot.consumedTranscriptMessages ?: additions.size
             require(covered in 0..additions.size || additions.isEmpty()) { "Invalid context transcript boundary" }
             validSnapshot.messages + additions.drop(covered) + laterHistory + pendingSupplements

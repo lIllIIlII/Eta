@@ -6,12 +6,6 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.provider.Settings
 
-/**
- * Agent 前台操作的触感语义。
- *
- * 优先让系统根据线性马达能力渲染预定义 primitive；设备不支持时退回系统 effect，
- * 避免固定时长、默认振幅带来的持续嗡鸣感。
- */
 internal object AgentHapticFeedback {
     enum class Type(
         val primitiveId: Int,

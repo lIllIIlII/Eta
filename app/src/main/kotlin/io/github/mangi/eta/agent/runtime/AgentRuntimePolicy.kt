@@ -9,7 +9,6 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.json.JSONObject
 
-/** Runtime 自己裁决可选能力，不能把入口进程提交的布尔值当作授权。 */
 internal object AgentRuntimePolicy {
     data class Permissions(
         val terminalTools: Boolean,

@@ -25,7 +25,7 @@ class ModuleMain : XposedModule() {
 
     private val logger = ModuleLogger(this)
     private var currentProcessName: String? = null
-    // 当前未启用热重载；保留句柄用于未来显式 unhook/replace，而不是维持 Hook 生效。
+
     private val hookHandles = mutableListOf<HookHandle>()
 
     override fun onModuleLoaded(param: ModuleLoadedParam) {
@@ -34,9 +34,7 @@ class ModuleMain : XposedModule() {
             detach()
             return
         }
-        // 缓存框架提供的只读 remote preferences，供所有 hook 拦截回调即时读取。
-        // getRemotePreferences 是 XposedInterface 的方法，XposedModule 继承自其 Wrapper 可直接调用。
-        // 调用失败时保留历史默认行为，但必须留下可诊断日志，不能伪装成配置同步正常。
+
         val remotePreferences = try {
             getRemotePreferences(Prefs.GROUP)
         } catch (exception: Exception) {

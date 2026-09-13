@@ -28,7 +28,6 @@ internal object AgentFileReferencePolicy {
     ): String = request.ifBlank { references.firstOrNull()?.displayName.orEmpty() }
 }
 
-/** 生成并解析 Eta 自己写入用户消息的本地路径上下文。 */
 internal object AgentFileReferencePromptCodec {
     private const val FILES_HEADER = "# Files mentioned by the user:"
     private const val REQUEST_HEADER = "## My request:"

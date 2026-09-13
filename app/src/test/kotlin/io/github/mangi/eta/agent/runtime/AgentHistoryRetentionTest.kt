@@ -66,7 +66,7 @@ class AgentHistoryRetentionTest {
         assertEquals(listOf(summary), restored.history)
         assertEquals(text, (restored.messages.single() as UserMessageUi).content)
         assertEquals(listOf("run"), restored.appliedRuntimeRunIds)
-        // 重复保存、缩短正文、删除会话都清理对应分块。
+
         runBlocking { AgentConversationStore.save(context, "c", mapOf("c" to restored), mapOf("c" to "历史"), mapOf("c" to 2L)) }
         assertEquals(journal, AgentConversationStore.load(context).conversationsById.getValue("c").journal)
         runBlocking { AgentConversationStore.save(context, null, emptyMap(), emptyMap(), emptyMap()) }
@@ -142,8 +142,7 @@ class AgentHistoryRetentionTest {
             override fun handleMessage(msg: Message) { received = msg.data }
         })
         val bundle = Bundle()
-        // Robolectric 的 dup 重新打开路径；此 fixture 保留目录项以验证独立描述符所有权。
-        // 取消目录链接后的读取与文件清理由上面的完整请求往返测试覆盖。
+
         val file = File(context.cacheDir, "local-descriptor-fixture")
         file.writeText(text)
         try {

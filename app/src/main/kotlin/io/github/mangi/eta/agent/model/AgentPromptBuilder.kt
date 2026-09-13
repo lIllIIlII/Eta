@@ -6,7 +6,6 @@ import io.github.mangi.eta.agent.roleplay.RoleplayRunContext
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 组装每次 run 的系统约束、历史与当前用户输入。 */
 internal object AgentPromptBuilder {
     fun buildInitialMessages(
         config: AgentModelClient.ModelConfig,

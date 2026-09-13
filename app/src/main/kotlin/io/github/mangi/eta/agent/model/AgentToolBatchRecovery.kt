@@ -3,7 +3,6 @@ package io.github.mangi.eta.agent.model
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 中断记录中的未知结果显式标记，避免恢复时重放已执行工具或提交悬空 tool call。 */
 internal object AgentToolBatchRecovery {
     fun completeInterrupted(messages: List<AgentModelClient.ConversationMessage>): List<AgentModelClient.ConversationMessage> {
         val open = linkedSetOf<String>()

@@ -8,9 +8,6 @@ import java.io.InputStream
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 
-/**
- * UI 与技能安装内核之间的窄适配层。UI 只负责重新打开 SAF 输入流，不解析或解压 ZIP。
- */
 internal fun interface SkillZipImportGateway {
     suspend fun installLocalZip(
         openStream: () -> InputStream,

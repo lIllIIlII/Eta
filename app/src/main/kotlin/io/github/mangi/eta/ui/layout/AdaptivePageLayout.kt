@@ -30,9 +30,6 @@ fun rememberIsWideScreen(): Boolean {
 internal fun isWideScreen(containerWidthPx: Int, density: androidx.compose.ui.unit.Density): Boolean =
     with(density) { containerWidthPx.toDp() >= WideScreenMinWidth }
 
-/**
- * 列表本身保持全宽，只把内容限制在居中的最大宽度内，避免宽屏两侧形成滚动死区。
- */
 @Composable
 fun WidePageContent(
     modifier: Modifier = Modifier,
@@ -49,9 +46,6 @@ fun WidePageContent(
     }
 }
 
-/**
- * 二级页内容只补水平方向的屏幕缺口与手势区；顶部由 TopAppBar、底部由页面末尾留白负责。
- */
 @Composable
 fun Modifier.horizontalCutoutPadding(): Modifier = windowInsetsPadding(
     WindowInsets.displayCutout

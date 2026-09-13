@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** 控制台一帧画面：行对象身份稳定，渲染层按 Line.id 复用、按 Line.version 重排。 */
 @Immutable
 internal data class ConsoleFrame(
     val lines: List<TerminalScreenBuffer.Line> = emptyList(),
@@ -47,23 +46,18 @@ internal data class ConsoleSessionUi(
 internal data class ConsoleUiState(
     val sessions: List<ConsoleSessionUi> = emptyList(),
     val activeSessionId: String? = null,
-    /** 环境 tab 的选择；与当前会话环境一致，无会话时表示新建会话的目标环境。 */
+
     val environment: TerminalEnvironment = TerminalEnvironment.DEBIAN,
     val linuxEnvironment: TerminalEnvironment = TerminalEnvironment.DEBIAN,
     val connected: Boolean = false,
     val exited: Boolean = false,
-    /** null = 探测中；false 时入口回退到块式终端。 */
+
     val ptySupported: Boolean? = null,
     val failMessage: String? = null,
-    /** 当前会话的画面；每个会话的屏幕缓冲区独立保存。 */
+
     val frame: ConsoleFrame = ConsoleFrame(),
 )
 
-/**
- * 控制台页面的 App 级状态所有者：持有多个 PTY 会话与各自独立的屏幕缓冲区，
- * 字节流在 IO 线程喂入 [TerminalScreenBuffer]，按节流节奏向 UI 发布当前会话的帧。
- * 离开页面会话仍存活；普通会话由前台执行服务持有，用户停止后回收。
- */
 internal class ConsoleStore(
     context: Context,
     private val scope: CoroutineScope,
@@ -88,7 +82,6 @@ internal class ConsoleStore(
     private val initialLinuxEnvironment =
         LinuxEnvironmentSettingsRepository.current(appContext).terminalEnvironment
 
-    /** 每个会话独立的屏幕缓冲区；写入只能在 IO 线程持锁进行，UI 线程持锁读快照。 */
     private val buffers = mutableMapOf<String, TerminalScreenBuffer>()
     private val sessionSizes = mutableMapOf<String, Pair<Int, Int>>()
 
@@ -109,7 +102,6 @@ internal class ConsoleStore(
     private var lastCols = 0
     private var lastRows = 0
 
-    /** 探测 PTY 前提；结果缓存进状态，不支持时 UI 提供回退入口。 */
     fun probePtySupport() {
         scope.launch {
             val supported = withContext(Dispatchers.IO) { ptySupported(ShellProcessSupervisor()) }
@@ -127,10 +119,6 @@ internal class ConsoleStore(
         }
     }
 
-    /**
-     * 确保当前有存活会话；网格尺寸变化重入时，当前会话存活则不重建。
-     * [environment] 仅用于没有可复用会话时的新建。
-     */
     fun open(environment: TerminalEnvironment, cols: Int, rows: Int) {
         if (cols <= 0 || rows <= 0) return
         lastCols = cols
@@ -148,7 +136,6 @@ internal class ConsoleStore(
         createSession(environment, cols, rows)
     }
 
-    /** 以当前环境与最近一次网格尺寸新建会话。 */
     fun newSession() {
         if (lastCols <= 0 || lastRows <= 0) return
         createSession(_uiState.value.environment, lastCols, lastRows)
@@ -168,7 +155,6 @@ internal class ConsoleStore(
         flushFrame(sessionId)
     }
 
-    /** 关闭指定会话；关闭当前会话时切换到剩余最近的会话，没有则回到空态。 */
     fun closeSession(sessionId: String) {
         scope.launch(Dispatchers.IO) {
             controller.closeSession(sessionId)
@@ -196,7 +182,6 @@ internal class ConsoleStore(
         _uiState.value.activeSessionId?.let { flushFrame(it) }
     }
 
-    /** 重启指定会话：终止后按原环境与原网格尺寸重开。 */
     fun restartSession(sessionId: String) {
         val session = _uiState.value.sessions.find { it.id == sessionId } ?: return
         val size = sessionSizes[sessionId] ?: (lastCols to lastRows)
@@ -213,7 +198,6 @@ internal class ConsoleStore(
         createSession(session.environment, size.first, size.second)
     }
 
-    /** 切换环境 tab：只改目标环境；有该环境的存活会话则切过去，否则由网格回调新建。 */
     fun switchEnvironment(environment: TerminalEnvironment) {
         val state = _uiState.value
         if (state.environment == environment && state.activeSessionId != null) return
@@ -234,7 +218,6 @@ internal class ConsoleStore(
         }
     }
 
-    /** 当前会话断开后以同一环境与网格尺寸重连。 */
     fun reconnect() {
         val activeId = _uiState.value.activeSessionId ?: return
         restartSession(activeId)

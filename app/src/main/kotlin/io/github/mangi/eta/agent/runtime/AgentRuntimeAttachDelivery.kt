@@ -1,6 +1,5 @@
 package io.github.mangi.eta.agent.runtime
 
-/** 由客户端 Main Handler 按接收顺序调用，隔离历史恢复与实时事件的交付。 */
 internal class AgentRuntimeAttachDelivery(
     private val onReplay: ((List<AgentEvent>) -> Unit)? = null,
     private val onEvent: (AgentEvent) -> Unit,
@@ -40,7 +39,6 @@ internal class AgentRuntimeAttachDelivery(
         if (beginResult()) onResult(result)
     }
 
-    /** 先按主线程事件顺序封口，完整结果交给等待线程物化。 */
     fun beginResult(): Boolean {
         if (state == State.CLOSED) return false
         val needsReplay = state == State.REPLAYING

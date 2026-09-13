@@ -13,7 +13,7 @@ internal object HyperOsLauncherHooks {
     fun install(module: XposedModule, logger: ModuleLogger, loader: ClassLoader): HookInstallation {
         val hooks = HookRegistrar(module, logger, "HyperOsLauncher")
         return hooks.install {
-            // 同一桌面可能保留多个版本的辅助类；只安装一个可用入口，避免嵌套调用重复触发。
+
             if (installGestureManager(hooks, loader)) return@install
             if (installOmni(hooks, loader)) return@install
             if (installEventHelper(hooks, loader)) return@install

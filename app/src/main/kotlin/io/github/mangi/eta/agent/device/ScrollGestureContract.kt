@@ -8,9 +8,6 @@ internal enum class ScrollAxis {
     VERTICAL,
 }
 
-/**
- * 滚动方向表示希望显示的新内容所在方向，而不是手指移动方向。
- */
 internal enum class ScrollDirection(
     val axis: ScrollAxis,
     val scrollDeltaSign: Int,

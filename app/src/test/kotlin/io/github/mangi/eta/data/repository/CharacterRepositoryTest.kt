@@ -52,7 +52,7 @@ class CharacterRepositoryTest {
         CharacterRepository.delete(profile.id)
         assertEquals(null, CharacterRepository.get(profile.id))
         assertEquals(listOf(copy.id), CharacterRepository.list().map { it.id })
-        // 删除角色后已有会话及其角色快照仍然保留。
+
         assertEquals(description, dao.roleplayJson(row.id))
     }
 
@@ -65,7 +65,7 @@ class CharacterRepositoryTest {
         CharacterRepository.delete(CharacterRepository.list().single().id)
         CharacterRepository.ensureDefaultCharacter()
         assertEquals(emptyList<String>(), CharacterRepository.list().map { it.id })
-        // 用户主动恢复时不受播种标记限制。
+
         CharacterRepository.createDefaultCharacter()
         assertEquals(listOf("小满"), CharacterRepository.list().map { it.card.name })
     }

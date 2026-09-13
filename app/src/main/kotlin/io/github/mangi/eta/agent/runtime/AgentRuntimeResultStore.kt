@@ -9,7 +9,6 @@ import io.github.mangi.eta.data.db.RuntimeResultEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
-/** 终态先落盘，入口成功提交后 ACK；未确认结果不按年龄或数量淘汰。 */
 internal object AgentRuntimeResultStore {
     private const val MAX_AGE_MS = 12L * 60L * 60L * 1000L
     private const val MAX_RECENT_ACKNOWLEDGEMENTS = 32
@@ -17,9 +16,6 @@ internal object AgentRuntimeResultStore {
     private val deliveryLock = Any()
     private val recentlyAcknowledgedRunIds = LinkedHashMap<String, Long>()
 
-    /**
-     * 返回 false 表示同一 run 已先收到 ACK，不应在 ACK 之后重新写回待交付队列。
-     */
     fun add(context: Context, completedRun: AgentRuntimeWire.CompletedRun): Boolean {
         val appContext = context.applicationContext
         val entity = completedRun.toEntity()

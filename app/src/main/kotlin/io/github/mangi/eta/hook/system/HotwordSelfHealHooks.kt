@@ -69,7 +69,7 @@ internal object HotwordSelfHealHooks {
                 ) { chain ->
                     val displayId = chain.getArg(0) as? Int ?: -1
                     val result = chain.proceed()
-                    // 开关关闭则不恢复热词检测。
+
                     if (displayId == 0 && Prefs.isEnabled(Prefs.Keys.HOTWORD_SELF_HEAL)) {
                         scheduleHotwordResume(chain.getThisObject(), logger)
                     }
@@ -133,7 +133,7 @@ internal object HotwordSelfHealHooks {
             if (resumeGeneration.get() != generation) {
                 return@Runnable
             }
-            // 即时关闭：开关在延迟任务排队期间可能已被用户关闭。
+
             if (!Prefs.isEnabled(Prefs.Keys.HOTWORD_SELF_HEAL)) {
                 cancelPendingResume(resetCooldown = true)
                 return@Runnable

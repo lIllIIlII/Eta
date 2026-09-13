@@ -96,12 +96,6 @@ import top.yukonga.miuix.kmp.squircle.squircleSurface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-/**
- * Agent 与用户共享的浏览器会话。
- *
- * 浏览器通常在后台由模型驱动；进入本页后挂载的是同一个 WebView，用户可以直接接管，
- * 不会新建一份与 Agent 状态脱节的预览。
- */
 @Composable
 internal fun AgentBrowserScreen(
     modifier: Modifier = Modifier,
@@ -265,10 +259,6 @@ internal fun AgentBrowserScreen(
     }
 }
 
-/**
- * 统一的浏览器窗口：工具栏、进度条与网页内容收进同一张卡片，
- * 进度条悬浮在内容顶部，加载时不再挤压布局。
- */
 @Composable
 private fun BrowserWindow(
     snapshot: BrowserSessionSnapshot,
@@ -307,8 +297,7 @@ private fun BrowserWindow(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                // 不能用 squircleClip：shader 遮罩会强制离屏合成，WebView 每帧重绘导致闪烁。
-                // 普通 clip 走 clipToOutline，硬件裁剪对 WebView 安全。
+
                 .clip(
                     RoundedCornerShape(
                         bottomStart = CardDefaults.CornerRadius,
@@ -437,10 +426,6 @@ private enum class BrowserOverlay {
     Failed,
 }
 
-/**
- * 加载进度条悬浮在网页顶部，不占布局；提取到 BoxScope 扩展中，避免与外层
- * ColumnScope 的 AnimatedVisibility 重载冲突。
- */
 @Composable
 private fun BoxScope.BrowserLoadingProgress(snapshot: BrowserSessionSnapshot) {
     AnimatedVisibility(
@@ -459,10 +444,6 @@ private fun BoxScope.BrowserLoadingProgress(snapshot: BrowserSessionSnapshot) {
     }
 }
 
-/**
- * 内容状态浮层。已有提交页面时导航/刷新保持旧页面可见，只显示顶部进度条，
- * 避免每次加载都用占位页盖住当前内容造成闪烁。
- */
 @Composable
 private fun BoxScope.BrowserStateOverlay(
     snapshot: BrowserSessionSnapshot,
@@ -571,9 +552,6 @@ private fun BrowserOverlayIcon(
     }
 }
 
-/**
- * 占位状态覆盖在 WebView 之上，拦截触摸，避免用户点到尚未完成渲染的页面。
- */
 private fun Modifier.consumeTouches(): Modifier = pointerInput(Unit) {
     awaitPointerEventScope {
         while (true) {

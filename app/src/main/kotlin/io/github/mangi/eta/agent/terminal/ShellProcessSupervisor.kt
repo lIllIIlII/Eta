@@ -5,7 +5,6 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-/** 负责 Shell 进程的启动接纳、所有权识别、进程树终止与回收。 */
 internal class ShellProcessSupervisor(
     private val allowTreeFallback: Boolean = !isAndroidRuntime(),
     private val setsidCommand: String = "setsid",
@@ -32,10 +31,6 @@ internal class ShellProcessSupervisor(
     var isClosing: Boolean = false
         private set
 
-    /**
-     * ProcessBuilder.start() 必须在锁外执行；启动完成后再以短临界区完成接纳或拒绝。
-     * 每个 Shell 优先进入独立 session，并把真实 Shell PID 写入仅本进程使用的临时文件。
-     */
     fun startShellProcess(
         identity: String,
         command: String?,
@@ -160,7 +155,6 @@ internal class ShellProcessSupervisor(
         metadata?.ownershipFile?.delete()
     }
 
-    /** leader 已退出后只废止所有权；禁止再向可能复用的 PID/PGID 发信号。 */
     fun retireExitedProcess(process: Process) {
         unregisterProcess(process)
     }
@@ -244,10 +238,6 @@ internal class ShellProcessSupervisor(
             "exec $safeSetsid -w sh -c ${shellQuote(groupScript)}; else $fallback; fi"
     }
 
-    /**
-     * PTY 控制台启动器：经 BusyBox script 为负载分配伪终端（stty 设定初始尺寸、TERM 宣告全彩）。
-     * script 缺失时写入 unavailable，由调用方拒绝接纳，控制台入口依赖 [ptySupported] 提前探测。
-     */
     private fun buildPtyLauncher(
         exportOwner: String,
         path: String,
@@ -265,7 +255,6 @@ internal class ShellProcessSupervisor(
             "exec $safeSetsid -w $run; else $run; fi"
     }
 
-    /** Root 会话优先进入 Magisk/KernelSU/APatch BusyBox standalone ash，补齐 Android PATH 外的 applet。 */
     internal fun buildAndroidPayload(identity: String, command: String?): String {
         val shellArgument = command?.let { "-c ${shellQuote(it)}" }.orEmpty()
         if (identity != "root") {
@@ -279,12 +268,6 @@ internal class ShellProcessSupervisor(
             "else sh $shellArgument; fi"
     }
 
-    /**
-     * Linux 工具环境始终在独立 mount namespace 中启动，避免 bind mount 泄漏到 Android 全局。
-     * chroot 不是安全沙箱；它只负责提供完整 Linux userland，Android 系统操作仍应走 android 环境。
-     * [sharedMounts] 在 namespace 建立时按当前配置逐个 bind 到 rootfs 的 workspace/mounts/<name>，
-     * 会话结束即随 namespace 回收，Android 侧不留需要卸载的全局挂载。
-     */
     internal fun buildLinuxPayload(
         rootfsPath: String,
         command: String?,
@@ -297,7 +280,7 @@ internal class ShellProcessSupervisor(
         val rootfs = shellQuote(rootfsPath)
         val mode = if (command == null) "session" else "command"
         val payload = shellQuote(command.orEmpty())
-        // name 经 SharedFolderMounts 校验只含 [A-Za-z0-9._-]，可安全拼进双引号路径。
+
         val mountsBlock = sharedMounts.joinToString("\n") { mount ->
             "eta_mount_optional ${shellQuote(mount.sourcePath)} " +
                 "\"\$eta_rootfs${SharedFolderMounts.LINUX_MOUNTS_ROOT}/${mount.name}\" bind"
@@ -366,8 +349,7 @@ internal class ShellProcessSupervisor(
             "$innerScriptHead\n$mountsBlock\n$innerScriptTail"
         }
         val discovery = AndroidBusyBox.discoveryScript()
-        // Alpine 的 /bin/sh 是指向 /bin/busybox 的绝对符号链接，Android 侧 -x 会按宿主根目录
-        // 解析链接目标而误判缺失；符号链接视为存在，真实可执行性由 chroot 后的内核解析兜底。
+
         return "$discovery; " +
             "[ -n \"${'$'}eta_busybox\" ] || { echo 'ETA_LINUX_BUSYBOX_MISSING' >&2; exit 127; }; " +
             "eta_rootfs=$rootfs; " +
@@ -507,7 +489,6 @@ internal class ShellProcessSupervisor(
     )
 }
 
-/** 写入托管进程环境块的归属标记；巡检与停止前用它防止 PID 复用误杀。 */
 internal const val ETA_PROCESS_OWNER_ENV = "ETA_PROCESS_OWNER"
 
 internal fun shellQuote(value: String): String =
@@ -519,11 +500,6 @@ internal data class OneShotShellResult(
     val stderr: ByteArray,
 )
 
-/**
- * 探测控制台 PTY 的前提：Root 侧 BusyBox 带 script applet。
- * 用 --list 精确匹配 applet 名；--help 的首行是版本横幅，不含 applet 名。
- * 只在控制台入口调用，不在进程启动热路径使用。
- */
 internal fun ptySupported(processSupervisor: ShellProcessSupervisor): Boolean {
     val command = AndroidBusyBox.discoveryScript() +
         "; [ -n \"\$eta_busybox\" ] || exit 1; \"\$eta_busybox\" --list 2>/dev/null | grep -qx script"
@@ -536,10 +512,6 @@ internal fun ptySupported(processSupervisor: ShellProcessSupervisor): Boolean {
     return result.exitCode == 0
 }
 
-/**
- * 一次性 Shell 命令原语：带超时回收与有界输出收集。调用方负责命令构造与输出解释；
- * 超时或 supervisor 关闭时整棵进程树由 [ShellProcessSupervisor] 回收。
- */
 internal fun runOneShotShell(
     processSupervisor: ShellProcessSupervisor,
     identity: String,

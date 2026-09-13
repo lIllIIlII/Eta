@@ -7,10 +7,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 
-/**
- * 个人数据读取只绑定已验证的系统或厂商 Provider，绝不向模型开放 URI、表名或 SQL。
- * Root 用于调用受签名权限保护的 Provider；查询条件始终由固定列和受控关键词组成。
- */
 internal class AgentPersonalDataTools(
     private val root: BoundedRootCommandExecutor,
 ) {

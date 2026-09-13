@@ -6,14 +6,6 @@ import com.mikepenz.markdown.model.parseMarkdown
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.parser.MarkdownParser
 
-/**
- * 面向追加式模型输出的 GFM 解析会话。
- *
- * 每次提交都在调用线程完成一次完整 GFM 解析；调用方应把会话限制在后台串行
- * dispatcher。完整解析让块级语法遵循同一套 CommonMark/GFM 规则，而不是由 UI
- * 猜测节点类型。流尚未结束时，仅在虚拟 EOF 上补齐仍在等待闭合的结构，虚拟字符
- * 不会写回消息，也不会进入最终快照。
- */
 internal class StreamingGfmParserSession {
     private val flavour = GFMFlavourDescriptor()
     private val parser = MarkdownParser(flavour)
@@ -22,8 +14,7 @@ internal class StreamingGfmParserSession {
 
     fun parse(source: String, isComplete: Boolean): StreamingGfmSnapshot {
         if (!source.startsWith(acceptedSource)) {
-            // 会话恢复或上游修正消息时重新建立基线；解析器本身没有可泄漏到新文档
-            // 的语法状态，后续快照仍保持追加式处理。
+
             acceptedSource = ""
         }
         acceptedSource = source
@@ -32,7 +23,7 @@ internal class StreamingGfmParserSession {
             source = source,
             isComplete = isComplete,
         )
-        // 终态直接交给静态视图，链接索引也必须随这次后台解析完成，不能在切换时重解析。
+
         val parsedState = if (isComplete) {
             when (val parsed = parseMarkdown(
                 content = renderedSource,
@@ -71,14 +62,6 @@ internal data class StreamingGfmSnapshot(
         state.takeIf { isComplete && originalSource == content }
 }
 
-/**
- * 为真实 EOF 和“暂时没有更多字符”的流式 EOF 建立不同语义。
- *
- * - 表格在分隔行确认前不发布候选表头，避免先按普通段落显示竖线。
- * - 未闭合链接保留在解析器缓冲区，避免把半截目标地址暴露给 UI。
- * - 已确认开始的围栏代码、代码 span 和强调结构使用只存在于解析快照中的
- *   虚拟闭合符，使其从第一次可判定时就保持同一种节点类型。
- */
 internal object StreamingGfmProjection {
     fun project(source: String, isComplete: Boolean): String {
         if (isComplete || source.isEmpty()) return source

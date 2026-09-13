@@ -502,7 +502,6 @@ internal class RootShellTerminalController(
         closeAll()
     }
 
-    /** 取消热路径只封闭新进程接纳；进程树终止和 reader/waiter 回收在后台完成。 */
     fun interruptAll() {
         beginClosing()
         if (cleanupStarted.compareAndSet(false, true)) {
@@ -945,7 +944,6 @@ internal class RootShellTerminalController(
             linuxSharedMounts = sharedMountsFor(environment),
         )
 
-    /** 共享挂载只在 Linux 会话建立时解析；Android 环境不涉及。 */
     private fun sharedMountsFor(environment: TerminalEnvironment): List<SharedFolderMount> =
         if (environment.isLinux) linuxSharedMountsProvider() else emptyList()
 

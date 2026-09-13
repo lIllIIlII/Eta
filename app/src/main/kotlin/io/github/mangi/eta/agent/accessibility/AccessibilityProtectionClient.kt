@@ -10,9 +10,6 @@ import android.provider.Settings
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-/**
- * App 侧只表达保护开关与恢复请求；Secure Settings 始终由 system_server 后端维护。
- */
 internal object AccessibilityProtectionClient {
     private const val PREFERENCES_NAME = "accessibility_protection"
     private const val PREFERENCE_ENABLED = "enabled"
@@ -112,7 +109,7 @@ internal object AccessibilityProtectionClient {
         }
 
         try {
-            // Android 14 起广播默认不共享发送者身份；保护后端必须取得真实 UID 才接受请求。
+
             val options = BroadcastOptions.makeBasic()
                 .setShareIdentityEnabled(true)
                 .toBundle()

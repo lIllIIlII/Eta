@@ -5,7 +5,6 @@ import io.github.mangi.eta.agent.model.AgentModelClient
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-/** 仅为不认识完整载荷字段的旧客户端提供内联预览；禁止用于存储或新模型请求。 */
 internal object AgentLegacyConversationProjection {
     const val DIRECT_CHARS = 96_000
     const val DRAIN_CHARS = 16_000

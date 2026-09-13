@@ -35,12 +35,6 @@ import io.github.mangi.eta.data.repository.AgentMemoryRepository
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 
-/**
- * 单次 Runtime run 的阻塞执行器。
- *
- * 它只拥有模型、工具和终态提交，不持有 Service、Messenger、Compose 或 WindowManager 状态。
- * 所有外部副作用都通过窄回调交回宿主。
- */
 internal class AgentRuntimeRunExecutor(
     context: Context,
     private val currentPermissions: () -> AgentRuntimePolicy.Permissions,

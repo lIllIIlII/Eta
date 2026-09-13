@@ -37,9 +37,6 @@ internal class AgentRunController {
         }
     }
 
-    /**
-     * 将补充指令排入下一个 turn。steering 不取消当前模型请求或工具批次。
-     */
     fun steer(text: String): Boolean {
         val prompt = text.trim()
         if (prompt.isBlank()) return false
@@ -50,14 +47,9 @@ internal class AgentRunController {
         return true
     }
 
-    /** 默认逐条消费，避免后来的补充指令越过前一条的模型回合。 */
     fun pollSteeringMessage(): String? =
         lock.withLock { steeringMessages.pollFirst() }
 
-    /**
-     * 自然结束前原子地消费最后一条 steering；若队列为空则永久关闭本 run 的接收入口。
-     * 这样 Service 不会在 loop 已返回后仍把补充指令误报为已接收。
-     */
     fun pollSteeringOrSeal(): String? =
         lock.withLock {
             steeringMessages.pollFirst()?.let { return it }
@@ -68,17 +60,10 @@ internal class AgentRunController {
     val hasPendingSteering: Boolean
         get() = lock.withLock { steeringMessages.isNotEmpty() }
 
-    /**
-     * 暂停执行：后续 [throwIfCancelled] 调用会阻塞挂起，直到 [resume] 或 [cancel]。
-     * 在工作线程的检查点调用，不会阻塞调用方线程。
-     */
     fun pause() {
         lock.withLock { paused = true }
     }
 
-    /**
-     * 恢复执行：唤醒被 [throwIfCancelled] 阻塞的工作线程，从挂起点继续。
-     */
     fun resume() {
         lock.withLock {
             paused = false
@@ -86,10 +71,6 @@ internal class AgentRunController {
         }
     }
 
-    /**
-     * 检查点：若已取消则抛异常；若已暂停则阻塞挂起直到恢复或取消。
-     * 在 agent 循环的每轮/每步调用，实现暂停可恢复、取消即终止。
-     */
     fun throwIfCancelled() {
         lock.withLock {
             while (paused && !cancelled) {

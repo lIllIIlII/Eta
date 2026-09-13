@@ -58,7 +58,6 @@ internal class AgentMemoryException(
     cause: Throwable? = null,
 ) : IllegalStateException(message, cause)
 
-/** 单一 MEMORY.md 的有界、原子文件存储。 */
 internal class AgentMemoryStore(
     rootDir: File,
 ) {

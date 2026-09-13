@@ -4,7 +4,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
-/** 流式复制授权文件，不信任文档提供方声明的文件大小。 */
 internal object BoundedFileCopy {
     fun copy(input: InputStream, output: OutputStream, maxBytes: Long) {
         require(maxBytes >= 0L)

@@ -1,6 +1,5 @@
 package io.github.mangi.eta.agent.skill
 
-/** ZIP 中可安装的 Skill。relativePath 以仓库根目录为基准，仓库根本身使用 `.`。 */
 data class SkillArchiveCandidate(
     val id: String,
     val name: String,
@@ -63,13 +62,13 @@ sealed interface SkillInstallResult {
 
     data class Conflict(
         val conflicts: List<SkillInstallConflict>,
-        /** 本地 ZIP 冲突时返回；来自安装核心实际物化并检查的同一份归档字节。 */
+
         val archiveSha256: String? = null,
     ) : SkillInstallResult
 
     data class Failure(
         val error: SkillInstallError,
-        /** 自动回滚不完整，应用私有恢复目录中保留了旧 Skill 备份。 */
+
         val recoveryRequired: Boolean = false,
     ) : SkillInstallResult
 }

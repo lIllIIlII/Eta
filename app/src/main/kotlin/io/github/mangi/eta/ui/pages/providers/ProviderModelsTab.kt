@@ -113,7 +113,7 @@ private val modelDialogBodyMaxHeight = 520.dp
 private val modelDialogChromeHeight = 112.dp
 
 private fun Modifier.modelDialogScrollableBody(): Modifier = layout { measurable, constraints ->
-    // 从弹窗实际约束中为标题、间距和操作栏让出空间，避免横屏时底部按钮被内容挤出边界。
+
     val fallbackMaxHeight = modelDialogBodyMaxHeight.roundToPx()
     val reservedHeight = modelDialogChromeHeight.roundToPx()
     val maxHeight = if (constraints.hasBoundedHeight) {
@@ -411,7 +411,7 @@ internal fun ProviderModelsTab(
             }
 
             item(key = "bottom_spacer", contentType = "spacer") {
-                // 多选操作栏悬浮在底部时，预留高度避免遮挡最后一个列表项；其余情况与大圆角屏幕下沿保持间距
+
                 Spacer(
                     modifier = Modifier
                         .height(if (selectionMode) 88.dp else 24.dp)
@@ -604,7 +604,6 @@ private fun ModelListGroupItem(
     }
 }
 
-/** 多选模式底部悬浮操作栏：退出在左，已选数量其次，全选与删除在右；删除沿用统一破坏性配色。 */
 @Composable
 private fun ModelSelectionBar(
     selectedCount: Int,

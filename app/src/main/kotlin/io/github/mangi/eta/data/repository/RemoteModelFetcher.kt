@@ -109,13 +109,6 @@ internal object RemoteModelFetcher {
             body
         }
 
-    /**
-     * 判断远端目录中的模型是否可用于 Agent 对话。
-     *
-     * OpenAI 兼容平台的 /models 会混入语音识别、语音合成、图像/视频生成、
-     * embedding、rerank 等非对话模型（例如阿里百炼一次返回数百个）。这些模型
-     * 无法参与 Agent 的文本工具调用循环，拉取时按 id 命名特征与输出模态过滤掉。
-     */
     internal fun isChatCapableModel(model: Model): Boolean {
         if (model.outputModalities.isNotEmpty() &&
             model.outputModalities.none { it.equals(Model.TEXT_MODALITY, ignoreCase = true) }
@@ -127,17 +120,17 @@ internal object RemoteModelFetcher {
     }
 
     private val NON_CHAT_MODEL_ID_MARKERS = listOf(
-        // 语音识别
+
         "asr", "whisper", "paraformer", "sensevoice", "gummy",
-        // 语音合成与声音模型
+
         "tts", "speech", "voice", "cosyvoice", "sambert",
-        // 向量与排序
+
         "embedding", "rerank",
-        // 图像生成与理解外的图像专用模型
+
         "image", "dall-e", "flux", "stable-diffusion", "wanx", "hidream",
-        // 视频生成
+
         "video", "veo-",
-        // 其他非对话专用模型
+
         "ocr", "music", "moderation",
     )
 
@@ -309,12 +302,6 @@ internal object RemoteModelFetcher {
     private fun List<String>.supportsAny(vararg names: String): Boolean? =
         takeIf { supported -> names.any(supported::contains) }?.let { true }
 
-    /**
-     * 空列表表示远端没有提供输入模态元数据，后续才允许官方目录补齐。
-     *
-     * 不能把缺失字段直接折叠成 text：否则无法区分“远端明确声明仅文本”和
-     * “标准 /models 根本未返回能力字段”，官方目录会错误覆盖前一种情况。
-     */
     private fun JsonObject.inputModalities(architecture: JsonObject?): List<String> {
         stringList("input_modalities", "inputModalities")?.let { return it }
         architecture?.stringList("input_modalities", "inputModalities")?.let { return it }

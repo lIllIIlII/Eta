@@ -243,8 +243,6 @@ fun ConversationSidePaneScaffold(
             }
         }
 
-        // NavDisplay 的退出条目在转场期间仍会保留组合；仅允许已稳定显示的首页
-        // 处理侧栏返回，避免它抢先消费二级页面的第一次返回事件。
         NavigationBackHandler(
             state = navigationEventState,
             isBackEnabled = visible &&
@@ -321,7 +319,7 @@ fun ConversationSidePaneScaffold(
                         Modifier
                     },
                 )
-                // 保持物理左右方向，不随 RTL 镜像：会话列表始终从屏幕左侧显露。
+
                 .anchoredDraggable(
                     state = paneDragState,
                     reverseDirection = false,
@@ -360,7 +358,7 @@ private fun ConversationPanePanel(
     onOpenPermissions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // state.conversations 已由 AgentAppState 按标题、预览与消息内容过滤。
+
     val query = state.searchQuery.trim()
     val groups = remember(state.conversations) { state.conversations.groupForDrawer() }
     val density = LocalDensity.current
@@ -372,9 +370,7 @@ private fun ConversationPanePanel(
         color = MiuixTheme.colorScheme.surface,
         contentColor = MiuixTheme.colorScheme.onSurface,
     ) {
-        // 列表全高滚动，搜索区与 Dock 作为浮层盖在内容上；两个浮层用与顶栏相同的
-        // textureBlur 采样列表 backdrop，内容滚入边缘时呈现毛玻璃而不是硬裁切。
-        // 有内容滚到浮层下方时浮层边缘出现分隔线，静止在顶部/底部时保持无边界。
+
         val backdrop = rememberTopBarBackdrop()
         var headerHeightPx by remember { mutableIntStateOf(0) }
         var dockHeightPx by remember { mutableIntStateOf(0) }
@@ -480,10 +476,6 @@ private fun ConversationPanePanel(
     }
 }
 
-/**
- * 侧栏边缘的毛玻璃区域。毛玻璃不可用时（关闭模糊或设备不支持 RuntimeShader）
- * 退回不透明底色，行为与之前一致。
- */
 @Composable
 private fun PaneFrostRegion(
     backdrop: LayerBackdrop?,
@@ -649,7 +641,7 @@ private fun ConversationTextRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            // 标题与角色名相同（如未改名的角色会话）时不再重复第二行。
+
             conversation.characterName?.takeIf { it != title }?.let { name ->
                 Text(name, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

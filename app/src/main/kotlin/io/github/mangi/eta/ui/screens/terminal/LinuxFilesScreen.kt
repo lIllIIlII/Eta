@@ -36,10 +36,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * Linux rootfs 只读文件浏览：目录列举与文件读取都经一次性 root Shell 完成，
- * 查看文件时进入屏内查看态，页面返回键先退回列表再退出页面。
- */
 @Composable
 internal fun LinuxFilesScreen(
     context: Context,
@@ -99,7 +95,6 @@ internal fun LinuxFilesScreen(
         fileResult = null
     }
 
-    // 查看文件时系统返回键先退回列表，再退出页面。
     val viewerBackState = rememberNavigationEventState(NavigationEventInfo.None)
     NavigationBackHandler(
         state = viewerBackState,

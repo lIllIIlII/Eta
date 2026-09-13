@@ -19,7 +19,6 @@ import kotlinx.serialization.encodeToString
 import java.io.InputStream
 import java.io.OutputStream
 
-/** Eta 用户数据备份；旧备份没有角色字段时保留设备上的角色库。 */
 @Serializable
 internal data class EtaBackupDocument(
     val format: String = FORMAT,
@@ -112,7 +111,7 @@ internal object EtaBackupRepository {
                             roleplay.persona,
                         )
                     }
-                    // 文件写入失败使数据库事务回滚，再补偿已经替换的记忆文件。
+
                     memoryWriteStarted = true
                     AgentMemoryRepository.replaceAll(document.memoryMd)
                     document.roleplay?.let { CharacterBackupTransfer.restoreMemories(appContext, it) }

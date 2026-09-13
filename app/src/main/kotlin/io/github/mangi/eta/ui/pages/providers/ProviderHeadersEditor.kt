@@ -40,7 +40,7 @@ internal fun LazyListScope.providerHeadersEditor(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
-    // 请求头数量很少且必须收进同一张卡片，折叠/展开态整组重排，不拆成独立 Lazy 条目。
+
     item(key = "custom_headers") {
         ProviderSection(title = "自定义请求头") {
             val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f)

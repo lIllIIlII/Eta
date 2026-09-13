@@ -28,7 +28,6 @@ import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 常用系统动作的结构化实现；所有 Root 脚本都由本类固定生成。 */
 internal class AgentStructuredDeviceTools(
     private val context: Context,
     private val logger: AgentLogger,

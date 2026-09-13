@@ -22,7 +22,7 @@ internal object HyperOsLegacyGesture {
             hooks.skipped("hyperos.legacy-touch", "NavStubView.onTouchEvent", "HyperOS: 桌面已有长按检测但回调未知，保留原生手势")
             return
         }
-        // View 回调在所属 UI 线程串行执行；弱键和值中的弱引用共同避免已销毁视图泄漏。
+
         val gestures = WeakHashMap<View, HyperOsLongPressGesture>()
         hooks.intercept("hyperos.legacy-touch", touch, "NavStubView.onTouchEvent") { chain ->
             val view = chain.getThisObject() as View

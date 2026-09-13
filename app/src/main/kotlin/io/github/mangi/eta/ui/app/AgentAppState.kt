@@ -428,7 +428,6 @@ internal class AgentAppState(
         }
     }
 
-    /** 用 checkpoint、终态 outbox 与 active session 一次性对账，避免用进程存活推断 run 状态。 */
     private suspend fun recoverRuntimeRuns() {
         val client = AgentRuntimeClient(appContext, AndroidAgentLogger)
         val checkpoints = withContext(Dispatchers.IO) {
@@ -559,7 +558,6 @@ internal class AgentAppState(
         }
     }
 
-    /** 把安全事件恢复为 UI 轨迹；半截回复不进入模型 history，设备工具也不会重放。 */
     private fun restoreCheckpointTrace(
         checkpoint: AgentRunCheckpointStore.Checkpoint,
         interrupted: Boolean,
@@ -1253,7 +1251,7 @@ internal class AgentAppState(
         val initialPersistence = persistConversations()
 
         val preparationJob = scope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
-            // write-ahead：用户消息未提交前不把可能产生副作用的 run 交给 Runtime。
+
             if (!initialPersistence.await()) {
                 withContext(Dispatchers.Main) {
                     applyRunResult(
@@ -1450,7 +1448,7 @@ internal class AgentAppState(
                 val preview = AgentImageCodec.previewFromReference(appContext, image) ?: image
                 val pending = PendingImageUi(
                     id = "img-${UUID.randomUUID()}",
-                    // 后续发送使用首次读取后的稳定引用，不再依赖 ROM Photo Picker URI 的授权生命周期。
+
                     uri = image.reference,
                     dataUrl = preview.reference,
                     mimeType = image.mimeType,
@@ -1807,8 +1805,7 @@ internal class AgentAppState(
 
     private fun restoreRunEvents(runId: String, events: List<AgentEvent>) {
         if (isReplyRewrite(runId)) return
-        // 恢复是完整快照：先清除同一 run 的旧投影，再一次发布，避免历史增量重复追加
-        // 或中途的 Running 状态使已结束的思考重新展开、播放动画。
+
         Snapshot.withMutableSnapshot {
             flushPendingRunDelta(runId)
             updateMessages(runId, updateTimestamp = false) { messages ->
@@ -2256,8 +2253,7 @@ internal class AgentAppState(
 
     private fun updateAssistantUsage(runId: String, round: Int, usage: TokenUsageUi) {
         if (usage.isEmpty) return
-        // 只补充 token 用量。不能触碰 isStreaming：Usage 事件紧跟在文本块结束之后，
-        // 若把 isStreaming 改回 true，流式渲染会在流式/静态两种视图间反复切换，整段重渲染。
+
         updateMessages(runId) { messages ->
             val targetIndex = messages.indexOfLast { message ->
                 message is AgentMessageUi && isAssistantMessageForRound(message.id, runId, round)
@@ -2516,7 +2512,6 @@ internal class AgentAppState(
         )
     }
 
-    // 内容匹配按（查询词, 会话状态引用）缓存：刷新摘要时未变化的会话不重复全文扫描。
     private val contentMatchCache = mutableMapOf<String, ContentMatchCacheEntry>()
 
     private fun conversationContentMatches(conversationId: String, query: String): Boolean {
@@ -2566,8 +2561,7 @@ internal class AgentAppState(
         const val MAX_PREVIEW_CHARS = 48
         const val LEGACY_STOPPED_ERROR = "已停止"
         const val SYNTHETIC_STATUS_STOPPED = "eta_status:stopped"
-        // 数据状态以较粗粒度发布，文字显现由独立的帧时钟连续推进。
-        // 这与 Kimi 将流式数据和视觉动画分层的做法一致。
+
         const val STREAM_UI_UPDATE_INTERVAL_MS = 80L
 
         fun emptyChatState(thinkingEnabled: Boolean): AgentChatHomeUiState =

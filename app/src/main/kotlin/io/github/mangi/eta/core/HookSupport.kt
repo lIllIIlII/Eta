@@ -30,20 +30,17 @@ internal object HookSupport {
             try {
                 return current.getDeclaredMethod(name, *parameterTypes).apply { isAccessible = true }
             } catch (_: NoSuchMethodException) {
-                // 继续检查父类。
+
             } catch (_: SecurityException) {
-                // 当前类受限时，父类仍可能公开兼容入口。
+
             } catch (_: LinkageError) {
-                // ROM 类签名引用缺失类型时按目标不存在处理，不能击穿 system_server。
+
             }
             current = current.superclass
         }
         return null
     }
 
-    /**
-     * 安装期按结构筛选公开方法。ROM 签名引用缺失类型时按目标不存在处理。
-     */
     fun findPublicMethod(
         clazz: Class<*>,
         predicate: (Method) -> Boolean
@@ -55,9 +52,6 @@ internal object HookSupport {
         null
     }
 
-    /**
-     * 安装期按结构筛选声明方法。单个方法不可访问时跳过，不影响其他候选项。
-     */
     fun findDeclaredMethods(
         clazz: Class<*>,
         makeAccessible: Boolean = false,
@@ -87,11 +81,11 @@ internal object HookSupport {
             try {
                 return current.getDeclaredField(name).apply { isAccessible = true }
             } catch (_: NoSuchFieldException) {
-                // 继续检查父类。
+
             } catch (_: SecurityException) {
-                // 当前类受限时，父类仍可能公开兼容字段。
+
             } catch (_: LinkageError) {
-                // ROM 类签名引用缺失类型时按目标不存在处理，不能击穿 system_server。
+
             }
             current = current.superclass
         }

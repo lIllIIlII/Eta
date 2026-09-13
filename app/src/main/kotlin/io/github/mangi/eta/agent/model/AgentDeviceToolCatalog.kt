@@ -3,7 +3,6 @@ package io.github.mangi.eta.agent.model
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 常用设备能力的结构化 schema；按风险组决定是否向模型公开。 */
 internal object AgentDeviceToolCatalog {
     fun appendTo(
         tools: JSONArray,

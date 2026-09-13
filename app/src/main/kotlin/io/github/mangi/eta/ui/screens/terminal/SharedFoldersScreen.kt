@@ -55,10 +55,6 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-/**
- * 共享文件夹管理：把 Android 目录配置为 Linux 环境 /workspace/mounts/ 下的挂载点。
- * 配置即全部状态；挂载在每个 Linux 会话建立时按当前配置生效，页面只负责增删与源目录可用性提示。
- */
 @Composable
 internal fun SharedFoldersScreen(
     context: Context,
@@ -221,7 +217,7 @@ internal fun SharedFoldersScreen(
                         removeTarget = null
                         refreshSources(updated)
                         coroutineScope.launch(Dispatchers.IO) {
-                            // 清理空的挂载点目录；仍有会话占用时 rmdir 失败，无副作用。
+
                             runOneShotShell(
                                 processSupervisor = shellSupervisor,
                                 identity = TerminalRuntime.defaultIdentity(TerminalEnvironment.ANDROID),
@@ -241,7 +237,6 @@ internal fun SharedFoldersScreen(
     }
 }
 
-/** 批量探测源目录是否存在；name 只含安全字符，可直接拼进单引号。 */
 private fun probeSources(
     supervisor: ShellProcessSupervisor,
     mounts: List<SharedFolderMount>,
@@ -262,11 +257,6 @@ private fun probeSources(
     }.toMap()
 }
 
-/**
- * 目录选择弹层使用当前可用身份枚举目录；普通模式受 App 文件权限限制，
- * Root 模式可以访问系统目录。公共存储授权在进入弹层前按需申请。
- * 确认时挂载的是当前已列出内容的目录（path）；路径输入框只用于跳转。
- */
 @Composable
 private fun SharedFolderPickerDialog(
     context: Context,

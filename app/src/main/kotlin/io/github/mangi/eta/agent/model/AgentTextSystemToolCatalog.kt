@@ -3,7 +3,6 @@ package io.github.mangi.eta.agent.model
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 文本输入、等待与系统操作工具 schema。 */
 internal object AgentTextSystemToolCatalog {
     fun appendTo(tools: JSONArray) {
         tools

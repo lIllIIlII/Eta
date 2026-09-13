@@ -1,6 +1,5 @@
 package io.github.mangi.eta.ui.app
 
-/** 导入只公开受控分类，文件内容与底层异常文本不进入界面。 */
 internal fun characterCardImportMessage(code: String?): String? = when (code) {
     "CARD_V3_INVALID" -> "PNG 中优先使用的 V3 角色数据损坏，未回退到 V2。请重新下载原始角色卡。"
     "CARD_METADATA_MISSING" -> "这张 PNG 没有角色卡信息，请选择原始角色卡图片，而不是截图或压缩后的图片。"

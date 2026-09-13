@@ -10,7 +10,6 @@ internal enum class LinuxExecutionBackend(val wireName: String) {
     PROOT("proot"),
 }
 
-/** App 进程的终端运行条件；读取能力不会触发 su 授权。 */
 internal object TerminalRuntime {
     @Volatile private var appContext: Context? = null
     fun acquireUserTask(id: String, onStop: () -> Unit): Boolean =

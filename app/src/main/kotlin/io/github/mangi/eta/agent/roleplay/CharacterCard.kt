@@ -32,7 +32,6 @@ internal data class CharacterProfile(
 
 internal data class CharacterDepthPrompt(val prompt: String, val depth: Int, val role: String)
 
-/** 原始树保留未实现的字段，界面编辑仅覆盖所属字段。 */
 internal data class CharacterCard(val raw: JsonObject) {
     val data: JsonObject get() = raw["data"] as? JsonObject ?: raw
     val name get() = data.text("name")

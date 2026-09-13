@@ -12,14 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 
-/**
- * Process-persistent archive for externally initiated runs that should later be
- * mirrored into the module's own chat history.
- *
- * Unlike [AgentRuntimeResultStore], entries here are not an entry-adapter retry
- * queue. They preserve the event trace so the first-party UI can reconstruct
- * thinking and tool activity that third-party assistant surfaces cannot show.
- */
 internal object AgentRunArchiveStore {
 
     data class ArchivedRun(

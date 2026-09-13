@@ -10,7 +10,6 @@ import org.json.JSONObject
 internal fun quoteColorOsMemoryIdentifier(value: String): String =
     "\"" + value.replace("\"", "\"\"") + "\""
 
-/** 在已打开的只读数据库上执行固定查询；Runtime 快照和小布进程 Hook 共用同一实现。 */
 internal object ColorOsMemoryDatabaseQuery {
     fun execute(database: SQLiteDatabase, operation: String, args: JSONObject): String = when (operation) {
         ColorOsMemoryBridgeProtocol.OPERATION_SEARCH -> searchMemories(database, args)

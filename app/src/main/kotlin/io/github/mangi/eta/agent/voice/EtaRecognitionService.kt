@@ -8,9 +8,6 @@ import android.speech.RecognitionListener
 import android.speech.RecognitionService
 import android.speech.SpeechRecognizer
 
-/**
- * Android 助理角色要求声明识别服务。当前文本会话不会启动它；若系统主动调用，则委托给外部 ASR。
- */
 class EtaRecognitionService : RecognitionService() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var activeCallback: Callback? = null

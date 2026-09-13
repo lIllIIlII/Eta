@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
         val mode = when (themeMode) {
             AppearanceThemeMode.LIGHT -> UiModeManager.MODE_NIGHT_NO
             AppearanceThemeMode.DARK -> UiModeManager.MODE_NIGHT_YES
-            // 应用级 AUTO 清除夜间模式覆盖，恢复跟随系统。
+
             AppearanceThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_AUTO
         }
         getSystemService(UiModeManager::class.java).setApplicationNightMode(mode)

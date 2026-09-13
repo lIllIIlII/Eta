@@ -77,7 +77,7 @@ class AgentAccessibilityService : AccessibilityService() {
     private val scrollEventObservationGate = ScrollEventObservationGate(
         uptimeMillis = SystemClock::uptimeMillis,
     )
-    // 远端节点查询可能占住线程数秒；只保留一个最新候选，禁止滚动事件形成积压。
+
     private val scrollEventExecutor = ThreadPoolExecutor(
         1,
         1,
@@ -133,10 +133,6 @@ class AgentAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() = Unit
 
-    /**
-     * 一次观察与其节点句柄组成不可变快照。调用方必须把同一实例传回节点动作，
-     * 避免其他运行或 wait_for_text 的临时观察改写 index 含义。
-     */
     fun captureNodeSnapshot(maxNodes: Int): NodeSnapshot? = runOnMainSync {
         val startedAt = SystemClock.elapsedRealtime()
         val root = rootInActiveWindow ?: return@runOnMainSync null
@@ -172,7 +168,6 @@ class AgentAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** 临时查询不发布任何全局节点状态，适用于 wait_for_text。 */
     fun queryNodes(maxNodes: Int): List<UiNode> =
         captureNodeSnapshot(maxNodes)?.nodes.orEmpty()
 
@@ -219,10 +214,6 @@ class AgentAccessibilityService : AccessibilityService() {
             }
         } ?: PackageWindowVisibility.UNKNOWN
 
-    /**
-     * BACK 只表示系统接收了退出动作；浮窗通常还会执行退出动画。
-     * 等待目标包窗口真正消失并稳定两个采样周期，避免下一步截图抢在 removeView 之前执行。
-     */
     fun awaitPackageWindowGone(
         packageName: String,
         timeoutMillis: Long = 1_000L,
@@ -284,7 +275,7 @@ class AgentAccessibilityService : AccessibilityService() {
             windowId = event.windowId,
             eventTimeMillis = event.eventTime,
         ) { observation ->
-            // 系统可能在滚动后清掉节点缓存，source 必须复制事件后在后台解析。
+
             val eventCopy = try {
                 AccessibilityEvent(event)
             } catch (error: RuntimeException) {
@@ -770,7 +761,6 @@ class AgentAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** 优先直接按选区写入，只有目标拒绝 SET_TEXT 时才回退系统粘贴。 */
     fun pasteText(text: String): NodeActionResult = runNodeActionOnMainSync {
         val node = findFocusedEditableNode()
             ?: return@runNodeActionOnMainSync NodeActionResult.failure(
@@ -848,7 +838,7 @@ class AgentAccessibilityService : AccessibilityService() {
         val currentClip = runCatching { clipboard.primaryClip }.getOrNull()
             ?: return false
         if (currentClip.description.label?.toString() != temporaryLabel) {
-            // 用户或其他应用已经写入新内容，不能用旧快照覆盖它。
+
             return true
         }
         return runCatching {
@@ -942,11 +932,6 @@ class AgentAccessibilityService : AccessibilityService() {
             .put("available", true)
             .put("package", currentPackageName().orEmpty())
 
-    /**
-     * 截取当前屏幕，排除 TYPE_ACCESSIBILITY_OVERLAY 浮层（glow/orb/bubble/resultCard/GestureIndicator）。
-     * 从 agent-runtime 子线程调用；takeScreenshotOfWindow 内部 post 到主线程，
-     * callback 在有界后台线程执行位图复制，latch 只阻塞 agent-runtime 工作线程。
-     */
     fun captureScreenshotExcludingOverlays(
         excludedPackages: Set<String> = emptySet(),
         onWindowsSubmitted: (() -> Unit)? = null,
@@ -979,8 +964,6 @@ class AgentAccessibilityService : AccessibilityService() {
         }
         val screenBounds = Rect(0, 0, screenW, screenH)
 
-        // 只过滤能确认属于 Eta 的无障碍 overlay；第三方 overlay 必须保留，
-        // 否则截图与实际接收坐标手势的窗口会不一致。
         val windowPackages = allWindows.associate { window ->
             window.id to window.root?.packageName?.toString()
         }
@@ -1101,7 +1084,7 @@ class AgentAccessibilityService : AccessibilityService() {
                 latch.countDown()
             }
         }
-        // 窗口 ID 已固定并全部提交后即可显示 Eta；后续合并和编码不会再把入口浮层拍进去。
+
         signalWindowsSubmitted()
         val completed = try {
             latch.await(2, TimeUnit.SECONDS)
@@ -1184,13 +1167,12 @@ class AgentAccessibilityService : AccessibilityService() {
             for (window in sortedWindows) {
                 val pair = screenshots[window.id]
                 if (pair == null) {
-                    // 上层窗口抓取失败时必须遮住其区域，不能向模型暴露实际已被遮挡的底层界面。
+
                     canvas.drawRect(RectF(window.bounds), occlusionPaint)
                 } else {
                     val (bmp, bounds) = pair
                     if (bmp.isRecycled) continue
-                    // 把窗口 bitmap 缩放到其 bounds 尺寸绘制，处理 takeScreenshotOfWindow
-                    // 返回尺寸与 bounds 不一致（逻辑像素 vs 物理像素）的情况。
+
                     val src = Rect(0, 0, bmp.width, bmp.height)
                     canvas.drawBitmap(bmp, src, RectF(bounds), null)
                 }
@@ -1663,7 +1645,7 @@ class AgentAccessibilityService : AccessibilityService() {
         }
         traversal.visitedNodes++
         try {
-            // 不可见父节点的后代不会成为可操作目标，尽早裁掉这类大分支。
+
             val visible = node.isVisibleToUser
             if (depth > 0 && !visible) return
 
@@ -1815,7 +1797,7 @@ class AgentAccessibilityService : AccessibilityService() {
                     GESTURE_CALLBACK_HANDLER,
                 )
             } catch (_: Throwable) {
-                // Binder 事务可能已经送达；异常不能证明手势未执行，禁止 Root 重放。
+
                 outcome.set(GestureDispatch.OUTCOME_UNKNOWN)
                 gate.finish()
                 latch.countDown()
@@ -1875,7 +1857,7 @@ class AgentAccessibilityService : AccessibilityService() {
             return try {
                 MainThreadCallResult.Completed(block())
             } catch (_: Throwable) {
-                // 框架调用抛错时无法证明副作用没有发生，禁止调用方回退重放。
+
                 MainThreadCallResult.OUTCOME_UNKNOWN
             }
         }
@@ -1904,7 +1886,7 @@ class AgentAccessibilityService : AccessibilityService() {
         }
         if (!completed) {
             if (gate.cancelIfPending()) return MainThreadCallResult.NOT_STARTED
-            // 已开始的副作用不得由调用方回退重做；返回未知结果，让模型先重新观察。
+
             return MainThreadCallResult.OUTCOME_UNKNOWN
         }
         if (failed) return MainThreadCallResult.OUTCOME_UNKNOWN
@@ -2324,10 +2306,6 @@ class AgentAccessibilityService : AccessibilityService() {
         }
         private val GESTURE_CALLBACK_HANDLER = Handler(GESTURE_CALLBACK_THREAD.looper)
 
-        /**
-         * 进程级 executor 不在 service 重连时 shutdownNow；否则已经由框架创建、
-         * 尚在队列中的 ScreenshotResult 无法进入回调释放 HardwareBuffer。
-         */
         private val SCREENSHOT_EXECUTOR: ExecutorService =
             Executors.newFixedThreadPool(2) { runnable ->
                 Thread(runnable, "agent-screenshot-callback").apply { isDaemon = true }

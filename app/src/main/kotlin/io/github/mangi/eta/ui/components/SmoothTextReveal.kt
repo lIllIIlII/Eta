@@ -33,13 +33,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 
-/**
- * 一条回答只使用一个显现时钟，按源码顺序在 Markdown 块之间分配同一帧的推进量。
- *
- * 解析和文本排版仅在目标文本变化时发生；帧间推进只更新普通字段并调用
- * [invalidateDraw]。只有显现跨入新行时才额外请求一次测量以增长消息高度，
- * 全程不写 Compose State，因此字符帧不会触发重组或重新排版。
- */
 @Stable
 internal class SmoothTextRevealCoordinator {
     private val records = sortedMapOf<RevealBlockKey, RevealRecord>()
@@ -49,16 +42,12 @@ internal class SmoothTextRevealCoordinator {
     private var animationsPaused = false
 
     val drained: StateFlow<Boolean> = drainedState
-    /** 已经开始显现的块，用于让列表 marker 与正文保持同一生命周期。 */
+
     val started: StateFlow<Set<RevealBlockKey>> = startedState
 
     val isAnimationPaused: Boolean
         get() = animationsPaused
 
-    /**
-     * 页面不可见时帧时钟会停，但 Runtime 仍可能继续追加文本。此时直接追平当前目标，
-     * 并让后续排版结果同样立即完成，避免回到页面后补播后台积压的显现动画。
-     */
     fun pauseAnimationsAndCatchUp() {
         animationsPaused = true
         records.values.forEach(::completeRecord)
@@ -110,7 +99,7 @@ internal class SmoothTextRevealCoordinator {
     fun detach(key: RevealBlockKey, node: SmoothTextRevealNode) {
         val record = records[key]?.takeIf { it.node === node } ?: return
         record.node = null
-        // 已离开组合的块不再消费帧时钟；保留完成进度，重挂载时只显现后续新增文本。
+
         completeRecord(record)
         updateDrainedState()
         wakeups.trySend(Unit)
@@ -162,7 +151,7 @@ internal class SmoothTextRevealCoordinator {
                     totalBacklog = totalBacklog,
                 )
                 val newlyStarted = mutableSetOf<RevealBlockKey>()
-                // 块结束后剩余的推进量继续用于下一块，避免短段落把追赶速度限制为每帧一块。
+
                 for (record in records.values) {
                     if (remainingAdvance <= 0f) break
                     if (record.node == null || record.layoutResult == null) continue
@@ -186,9 +175,7 @@ internal class SmoothTextRevealCoordinator {
         layoutResult: TextLayoutResult,
     ) {
         if (text != record.text) {
-            // 流式文本只追加不修改，但行内语法闭合（**粗体**、`code`、链接折叠等）会让
-            // 渲染文本丢掉标记字符而变短或错位。此时进度只能保持单调前进：一旦回退，
-            // 已显现的文字会消失并重新打字，表现为输出反复闪烁。
+
             record.boundaries = updateGraphemeBoundaries(
                 previousText = record.text,
                 previousBoundaries = record.boundaries,
@@ -475,13 +462,6 @@ internal fun graphemeBoundaries(text: String): IntArray {
     return result.toIntArray()
 }
 
-/**
- * 为只追加文本增量维护字素边界。
- *
- * 新内容可能把旧文本的最后一个字素继续延长，例如组合音标、ZWJ emoji、旗帜和 CRLF。
- * 因此保留倒数第二个边界之前的结果，只重算最后一个旧字素和新增后缀，避免每个流式
- * 分片都从头扫描整条回答。
- */
 internal fun updateGraphemeBoundaries(
     previousText: String,
     previousBoundaries: IntArray,
@@ -559,8 +539,7 @@ internal fun advanceSmoothReveal(
     totalBacklog: Float,
 ): Float {
     if (current >= target) return target
-    // 帧间隔已在调用侧限制在 MAX_FRAME_DELTA_SECONDS 内，单帧推进量由自适应速度决定。
-    // 不能再加每帧 1 字素的硬上限，否则积压时追赶速度失效，输出会稳定滞后于模型。
+
     val advance = (smoothRevealSpeed(totalBacklog) * elapsedSeconds).coerceAtLeast(0f)
     return (current + advance).coerceAtMost(target)
 }

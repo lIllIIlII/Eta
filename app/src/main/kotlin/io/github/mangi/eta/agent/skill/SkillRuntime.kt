@@ -27,7 +27,6 @@ internal fun isSafeBuiltinSkillInstallation(targetDir: File): Boolean {
         skillFile.isFile
 }
 
-/** 内置技能 manifest 条目。 */
 private data class BuiltinSkillAsset(
     val id: String = "",
     val name: String = "",
@@ -39,16 +38,11 @@ private data class BuiltinSkillAsset(
     val hasEvals: Boolean = false,
 )
 
-/** 注册表中的技能状态记录。 */
 private data class SkillRegistryEntry(
     val enabled: Boolean = true,
     val source: String = USER_SOURCE,
     val installState: String = INSTALL_STATE_INSTALLED,
 )
-
-// =====================================================================================
-// SkillRegistryStore — 持久化技能安装元数据；技能正文仍保留在文件树中。
-// =====================================================================================
 
 private class SkillRegistryStore(
     context: Context,
@@ -112,10 +106,6 @@ private class SkillRegistryStore(
         }
     }
 }
-
-// =====================================================================================
-// BuiltinSkillAssetStore — 从 assets 读取并安装内置技能
-// =====================================================================================
 
 private class BuiltinSkillAssetStore(
     private val context: Context,
@@ -208,10 +198,6 @@ private class BuiltinSkillAssetStore(
     }
 }
 
-// =====================================================================================
-// SkillIndexService — 扫描、索引、管理技能
-// =====================================================================================
-
 class SkillIndexService(
     private val context: Context,
     private val skillsRoot: File,
@@ -226,10 +212,6 @@ class SkillIndexService(
     @Volatile
     private var cachedManagementEntries: List<SkillIndexEntry>? = null
 
-    /**
-     * 所有可读写索引的入口都先在同一把跨进程锁内完成待处理文件事务与 Room 快照恢复。
-     * 仅能读取文件、不具备 registry 恢复能力的 Loader 会由锁实现保持 fail-closed。
-     */
     internal fun <T> withMutationLock(block: () -> T): T = SkillMutationLock.withLock(
         skillsRoot = skillsRoot,
         recoveryHandler = ::restoreRecoveredRegistry,
@@ -358,7 +340,7 @@ class SkillIndexService(
                             LinkOption.NOFOLLOW_LINKS,
                         )
                     ) {
-                        // 成功删除时备份内可能含历史 symlink，必须只 unlink，不能递归跟随。
+
                         deleteSkillPathWithoutFollowingLinks(workRoot, operation)
                     }
                 }
@@ -377,7 +359,6 @@ class SkillIndexService(
         }
     }
 
-    /** 文件提交成功后，以单次 Room 事务登记用户 Skill，并同步清除索引缓存。 */
     internal fun registerInstalledUserSkills(skillIds: List<String>) {
         withMutationLock {
             synchronized(indexLock) {
@@ -398,7 +379,6 @@ class SkillIndexService(
         }
     }
 
-    /** 在正式目录发生任何移动前，持久化事务涉及 id 的完整旧 registry 状态。 */
     internal fun captureRegistryRecoverySnapshots(
         skillIds: List<String>,
     ): List<SkillRegistryRecoverySnapshot> = synchronized(indexLock) {
@@ -419,7 +399,6 @@ class SkillIndexService(
         }
     }
 
-    /** 文件恢复完成后，以单次 Room 事务还原全部旧快照；失败时调用方保留 journal。 */
     internal fun restoreRecoveredRegistry(recovered: List<RecoveredSkillOperation>) {
         if (recovered.isEmpty()) return
         synchronized(indexLock) {
@@ -572,10 +551,6 @@ class SkillIndexService(
     }
 }
 
-// =====================================================================================
-// SkillLoader — 加载技能正文和附属资源
-// =====================================================================================
-
 class SkillLoader(private val skillsRoot: File) {
     private val canonicalSkillsRoot = skillsRoot.canonicalFile
     private val resourceReader = SkillResourceReader(skillsRoot)
@@ -616,10 +591,6 @@ class SkillLoader(private val skillsRoot: File) {
     }
 }
 
-// =====================================================================================
-// SkillCompatibilityChecker — 兼容性检查
-// =====================================================================================
-
 object SkillCompatibilityChecker {
     fun evaluate(entry: SkillIndexEntry): SkillCompatibilityResult {
         val raw = buildString {
@@ -640,10 +611,6 @@ object SkillCompatibilityChecker {
         }
     }
 }
-
-// =====================================================================================
-// SkillRuntime — 工厂入口
-// =====================================================================================
 
 object SkillRuntime {
     @Volatile

@@ -174,9 +174,9 @@ internal abstract class EtaDatabase : RoomDatabase() {
             database.execSQL(
                 "UPDATE provider_models SET source = 'catalog' WHERE is_built_in = 1"
             )
-            // 旧版“添加自定义模型”会在打开编辑框时提前落下一条空记录。
+
             database.execSQL("DELETE FROM provider_models WHERE TRIM(model_id) = ''")
-            // 只清理由旧版“新建对话”产生、且用户从未真正使用或命名过的占位记录。
+
             database.execSQL(
                 "DELETE FROM conversations " +
                     "WHERE title = '新对话' " +
@@ -220,7 +220,7 @@ internal abstract class EtaDatabase : RoomDatabase() {
                 "INSERT INTO conversation_context_checkpoints (conversation_id, history_json) " +
                     "SELECT id, history_json FROM conversations"
             )
-            // SQL 内搬移完整正文；后续分块迁移负责行大小，不能因旧字段过大丢弃历史。
+
             database.execSQL("UPDATE conversations SET history_json = '[]'")
         }
 

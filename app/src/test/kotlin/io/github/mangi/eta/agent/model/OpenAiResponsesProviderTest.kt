@@ -67,7 +67,7 @@ class OpenAiResponsesProviderTest {
             writeBody = { output ->
                 output.write(firstChunk.toByteArray(Charsets.UTF_8))
                 output.flush()
-                // 服务端只有确认首个增量已经交付，才发送 done 和终态，排除读到 EOF 才输出。
+
                 check(firstDeltaDelivered.await(5, TimeUnit.SECONDS))
                 output.write(remainingChunks.toByteArray(Charsets.UTF_8))
                 output.flush()

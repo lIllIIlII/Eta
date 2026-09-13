@@ -104,7 +104,7 @@ class AgentRuntimeSafetyTest {
         ).toLogLine()
 
         assertTrue(line.contains("code=TIMEOUT"))
-        // 摘要正文不进日志，只记录长度与提取出的错误码
+
         assertFalse(line.contains("等待文本超时"))
     }
 

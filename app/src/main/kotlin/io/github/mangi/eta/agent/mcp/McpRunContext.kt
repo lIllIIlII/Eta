@@ -17,7 +17,6 @@ internal class McpRunTool(
     val bearerToken: String?,
 )
 
-/** 一次 run 使用冻结的 MCP 工具目录，设置变更从下一次 run 生效。 */
 internal class McpRunSnapshot(
     val tools: List<McpRunTool>,
 ) {

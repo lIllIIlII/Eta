@@ -464,8 +464,7 @@ private fun BoxScope.AssistantPanel(
                     if (directHandoffPullPx >= directHandoffThresholdPx) {
                         triggerHandoff()
                     }
-                    // 第二段上滑由父容器在 pre-scroll 阶段完整消费，避免列表或
-                    // overscroll 先截走事件后，接管手势永远达不到阈值。
+
                     return Offset(0f, available.y)
                 }
                 val shouldResize = (available.y < 0f && current < maxContentHeightPx) ||

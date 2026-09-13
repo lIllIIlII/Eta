@@ -31,7 +31,7 @@ internal object AssistantManager {
     private const val SHOW_SOURCE_PUSH_TO_TALK = 1 shl 5
     private const val DEFAULT_SHOW_FLAGS = SHOW_SOURCE_PUSH_TO_TALK
     private const val CONFIG_VERIFY_COOLDOWN_MS = 15_000L
-    // Android 37 RoleControllerManager 自身超时为 15 秒；本地 watchdog 只能晚于它做最终状态核验。
+
     private const val ROLE_OPERATION_WATCHDOG_MS = 17_000L
     private const val REFRESH_COOLDOWN_MS = 5_000L
 
@@ -366,7 +366,7 @@ internal object AssistantManager {
         rebuildWhenVerified: Boolean,
     ): Boolean = handler.post {
         try {
-            // 请求入队后目标或开关可能变化，真正执行前必须重新读取 RemotePreferences。
+
             val target = Prefs.powerAssistantTarget()
             if (!shouldConfigureAssistant(
                     autoConfigEnabled = Prefs.isEnabled(Prefs.Keys.ASSISTANT_AUTO_CONFIG),
@@ -598,7 +598,7 @@ internal object AssistantManager {
                 lastForcedRefreshUptime = now
                 lastForcedRefreshTarget = binding.target
                 lastForcedRefreshUserId = userId
-                // 先做一次无等待重建，角色核验完成后仍会按最终状态再次确认。
+
                 rebuildVoiceInteractionImplementation(
                     logger = logger,
                     userId = userId,
@@ -652,7 +652,7 @@ internal object AssistantManager {
     ) {
         val configurationKey = ConfigurationKey(userId, binding.target)
         try {
-            // RoleManager 请求无法取消；回调到达时必须确认目标和开关仍与入队时一致。
+
             val autoConfigEnabled = Prefs.isEnabled(Prefs.Keys.ASSISTANT_AUTO_CONFIG)
             val currentTarget = Prefs.powerAssistantTarget()
             if (!isAssistantConfigurationCurrent(

@@ -8,9 +8,6 @@ import android.os.Binder
 import android.os.Bundle
 import android.os.Process
 
-/**
- * 向 system_server 暴露最小连接状态，不返回节点、窗口或用户内容。
- */
 class AgentAccessibilityHealthProvider : ContentProvider() {
     override fun onCreate(): Boolean = true
 

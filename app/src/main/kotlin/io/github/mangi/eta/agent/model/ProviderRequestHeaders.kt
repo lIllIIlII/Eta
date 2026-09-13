@@ -15,7 +15,7 @@ internal object ProviderRequestHeaders {
         builder.set("User-Agent", "Eta")
         CustomHeaderFilter.mergeInto(builder, customHeaders)
         if (baseUrl.toHttpUrlOrNull()?.host == "opencode.ai") {
-            // 会话头由 Runtime 持有，避免固定自定义值把所有对话合并到同一路由。
+
             builder.set(
                 "x-opencode-session",
                 UUID.nameUUIDFromBytes(sessionId.toByteArray(Charsets.UTF_8)).toString(),

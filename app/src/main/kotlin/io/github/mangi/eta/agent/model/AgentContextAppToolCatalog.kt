@@ -3,7 +3,6 @@ package io.github.mangi.eta.agent.model
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 上下文、应用入口与屏幕观察工具 schema。 */
 internal object AgentContextAppToolCatalog {
     fun appendTo(tools: JSONArray) {
         tools

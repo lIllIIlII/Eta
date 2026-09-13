@@ -32,7 +32,7 @@ class DetachedTaskSupervisorTest {
 
     @After
     fun tearDown() {
-        // 兜底清理测试残留的 detached 进程（正常路径 stop 已经杀掉）。
+
         supervisors.flatMap { it.list() }.forEach { status ->
             ProcessHandle.of(status.task.pid).ifPresent { it.destroyForcibly() }
         }
@@ -83,7 +83,6 @@ class DetachedTaskSupervisorTest {
         assertTrue("$result", result is DaemonStartResult.Started)
         val task = (result as DaemonStartResult.Started).task
 
-        // start 返回后宿主进程仍被托管；任务不依赖前台命令会话。
         assertTrue(ProcessHandle.of(task.pid).map { it.isAlive }.orElse(false))
 
         val statuses = supervisor.list()
@@ -113,7 +112,6 @@ class DetachedTaskSupervisorTest {
         assertTrue(logs.text.contains("line1"))
         assertTrue(logs.text.contains("line3"))
 
-        // 已退出任务保留记录供查看日志，stop 负责清理。
         assertTrue(supervisor.stop(task.id))
         assertTrue(supervisor.list().isEmpty())
         assertFalse(supervisor.readLogs(task.id).ok)
@@ -131,7 +129,6 @@ class DetachedTaskSupervisorTest {
         assertTrue("$started", started is DaemonStartResult.Started)
         val task = (started as DaemonStartResult.Started).task
 
-        // 模拟 App 重启：新实例加载同一份记录文件，仍应认领存活进程并能停止它。
         val second = newSupervisor()
         val statuses = second.list()
         assertEquals(1, statuses.size)
@@ -180,7 +177,7 @@ class DetachedTaskSupervisorTest {
 
     @Test
     fun stopWithMismatchedTokenDoesNotSignalProcess() {
-        // PID 复用防护依赖 /proc/<pid>/environ 的 token 校验，无 /proc 的宿主上没有可校验通道。
+
         assumeTrue("/proc is required for token verification", File("/proc").isDirectory)
         val supervisor = newSupervisor()
         val self = ProcessHandle.current()
@@ -218,7 +215,7 @@ class DetachedTaskSupervisorTest {
             "/data/local/tmp/eta/daemon/dm_linux01.pid",
             supervisor.hostDaemonPath(linuxTask, linuxTask.logPath.removeSuffix(".log") + ".pid"),
         )
-        // Android 任务的路径原样保留。
+
         assertEquals(
             androidTask.logPath,
             supervisor.hostDaemonPath(androidTask, androidTask.logPath),

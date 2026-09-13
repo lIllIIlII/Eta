@@ -6,12 +6,6 @@ import io.github.mangi.eta.agent.model.AgentToolBatchRecovery
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-/**
- * 一次 Runtime run 的控制权和唯一终态。
- *
- * Service 替换、用户取消和正常完成都必须经过此对象，避免旧 run 向新 reply channel 发消息，
- * 也避免同一 run 发送两个最终结果。
- */
 internal class AgentRuntimeSession(
     val runId: String,
     val controller: AgentRunController = AgentRunController(),
@@ -70,10 +64,6 @@ internal class AgentRuntimeSession(
             true
         }
 
-    /**
-     * Activity 被移出任务栈后 Runtime 仍可能继续执行。安全历史回放、完成确认和实时订阅
-     * 共用同一把锁，保证客户端收到确认前的事件都是历史，新增事件与终态不会越过边界。
-     */
     fun attach(
         eventSink: (AgentEvent) -> Unit,
         resultSink: (AgentRuntimeWire.RunResult) -> Unit,
@@ -126,11 +116,6 @@ internal class AgentRuntimeSession(
         }
     }
 
-    /**
-     * 先原子竞争 COMMITTING，再完成提交前副作用和结果发布。取消与替换不能越过提交胜者，
-     * 因而不会出现“客户端收到取消、outbox 却留下成功结果”的分裂状态；耗时 I/O 也不持有锁。
-     * [beforePublish] 必须自行吸收非致命持久化异常。
-     */
     fun complete(
         result: AgentRuntimeWire.RunResult,
         beforePublish: () -> Unit = {},

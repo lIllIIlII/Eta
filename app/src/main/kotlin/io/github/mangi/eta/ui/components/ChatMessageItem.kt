@@ -195,9 +195,6 @@ private fun decodeDataUrlBitmap(dataUrl: String): ImageBitmap? {
     }.getOrNull()
 }
 
-/**
- * 等待首个文本片段时的轻量反馈。
- */
 @Composable
 fun AITypingIndicator(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "dots")
@@ -227,10 +224,6 @@ fun AITypingIndicator(modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * 只有正在执行的状态才持有无限动画。历史思考和工具条目保持静态，避免长会话里
- * 每个已完成节点都持续产生帧时钟与状态更新。
- */
 @Composable
 private fun rememberActivePulse(
     active: Boolean,
@@ -344,9 +337,6 @@ internal fun ChatMessageItem(
     }
 }
 
-/**
- * 把连续的思考与工具调用收束为一个可展开的工作过程，避免 Agent 事件退化为聊天气泡噪音。
- */
 @Composable
 internal fun AgentWorkProcess(
     id: String,
@@ -494,8 +484,6 @@ internal fun AgentWorkProcess(
         }
     }
 }
-
-// ── 用户消息：轻盈美观气泡 ──────────────────────────────────────────────
 
 @Composable
 private fun UserMessageBubble(
@@ -661,12 +649,6 @@ private fun MessageTooltipAction(
     }
 }
 
-// ── 上下文压缩：时间线中的轻量胶囊标记 ─────────────────────────────────
-
-/**
- * 压缩不是一轮对话结果，而是上下文维护事件；用居中胶囊标记与助手正文区分，
- * 进行中通过图标脉冲反馈，结束后保留压缩前后的 token 信息。
- */
 @Composable
 private fun ContextCompactionMarker(
     message: SystemNoticeMessageUi,
@@ -716,8 +698,6 @@ private fun ContextCompactionMarker(
     }
 }
 
-// ── Agent 结果 ───────────────────────────────────────────────────────
-
 @Composable
 private fun AgentMessageBlock(
     message: AgentMessageUi,
@@ -738,8 +718,7 @@ private fun AgentMessageBlock(
     var streamingRevealComplete by remember(message.id) {
         mutableStateOf(!keepStreamingMarkdown)
     }
-    // 渲染会话由列表层按 message.id 持有，item 滚出视口被销毁后滑回时复用同一
-    // 会话；没有外部持有者时（如嵌套条目）退回组合内 remember，行为与之前一致。
+
     val streamingState = if (keepStreamingMarkdown) {
         retainedStreamingState ?: remember(message.id) { StreamingMarkdownState() }
     } else {
@@ -931,7 +910,7 @@ private fun StableMarkdown(
     markdownState: MarkdownState? = null,
     parsedState: State.Success? = null,
 ) {
-    // 流式终态已有完整 AST，直接复用，避免新解析器的 Loading 原文先撑高页面再缩回。
+
     val state = parsedState ?: (markdownState ?: rememberMarkdownState(
         content = content,
         retainState = true,
@@ -946,7 +925,7 @@ private fun StableMarkdown(
         components = components,
         modifier = modifier,
         loading = {
-            // 保留与最终正文接近的高度，避免历史消息异步解析完成后越界绘制。
+
             Text(
                 text = content,
                 style = chatMarkdownBodyStyle(tone),
@@ -983,7 +962,7 @@ private fun StreamingMarkdown(
     tone: ChatMarkdownTone = ChatMarkdownTone.Answer,
 ) {
     val revealCoordinator = state.revealCoordinator
-    // 思考紧跟已收到的增量，避免高速思考先排版占位、再受正文逐字速度限制而积压。
+
     val animateReveal = tone == ChatMarkdownTone.Answer
     val components = remember(revealCoordinator, isStreaming, animateReveal) {
         chatMarkdownComponents(
@@ -1038,7 +1017,6 @@ private fun StreamingMarkdown(
             return@LaunchedEffect
         }
 
-        // 等这一版 AST 完成组合与排版后，再等待尾部字符的透明度动画收口。
         withFrameNanos { }
         if (!revealCoordinator.drained.value) {
             revealCoordinator.drained.filter { it }.first()
@@ -1064,7 +1042,7 @@ private fun StreamingMarkdown(
             components = components,
             animations = markdownAnimations(animateTextSize = { this }),
             modifier = modifier.onGloballyPositioned {
-                // 恢复基线对应的 AST 真正排版后才开放增量动画，解析耗时不受帧数限制。
+
                 if (state.restoreState.completeLayout(
                         generation = restoreGeneration,
                         renderedContent = parsed.originalSource,
@@ -1086,10 +1064,6 @@ private fun StreamingMarkdown(
     }
 }
 
-/**
- * 顶层节点以源码位置和语法类型作为稳定身份。完整重解析只替换真正发生类型变化的
- * 当前块，前面已经稳定的段落、表格和代码块不会因新 chunk 到达而重新挂载。
- */
 @Composable
 private fun StreamingGfmSuccess(
     state: State.Success,
@@ -1112,10 +1086,6 @@ private fun StreamingGfmSuccess(
     )
 }
 
-/**
- * 空行只负责切分 Markdown 块，不直接占据布局高度；可见块之间按语义分配留白，
- * 避免统一 block padding 让标题、正文、列表和表格失去层级。
- */
 @Composable
 private fun ChatMarkdownDocument(
     root: ASTNode,
@@ -1212,8 +1182,6 @@ internal fun streamingMarkdownBatchEnd(
 ): Int {
     return AppendOnlyGraphemeIndex().apply { update(content) }.endAfter(start, maxGraphemes)
 }
-
-// ── Markdown 样式：克制的聊天排版，标题只作强调不作页面标题 ─────────────
 
 private enum class ChatMarkdownTone {
     Answer,
@@ -1312,7 +1280,7 @@ private fun chatMarkdownTextColor(tone: ChatMarkdownTone): Color =
 @Composable
 private fun chatMarkdownColors(tone: ChatMarkdownTone) = markdownColor(
     text = chatMarkdownTextColor(tone),
-    // 代码块与表格的底色、描边由自定义组件绘制，这里只保留行内代码底色与分隔线。
+
     codeBackground = MiuixTheme.colorScheme.surface,
     inlineCodeBackground = MiuixTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
     dividerColor = MiuixTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -1328,7 +1296,7 @@ private fun chatMarkdownDimens() = markdownDimens(
 
 @Composable
 private fun chatMarkdownPadding() = markdownPadding(
-    // 顶层块由 ChatMarkdownDocument 按语义分配留白，库的统一前置间距保持关闭。
+
     block = 0.dp,
     list = 3.dp,
     listItemTop = 3.dp,
@@ -1457,10 +1425,6 @@ private fun chatMarkdownComponents(
     },
 )
 
-/**
- * 流式列表不能直接使用库的默认实现：默认实现会立即绘制 marker，而正文还在显现动画中。
- * 这里把每一项作为稳定的组合单元，并让 marker 与该项首个正文块共享开始时机。
- */
 @Composable
 private fun ChatMarkdownList(
     model: MarkdownComponentModel,
@@ -1514,7 +1478,7 @@ private fun ChatMarkdownList(
                 ) {
                     Box(
                         modifier = Modifier.graphicsLayer(
-                            // 隐藏 marker 但保留它的测量宽度，避免正文横向跳动。
+
                             alpha = if (markerVisible) 1f else 0f,
                         ),
                     ) {
@@ -1535,9 +1499,7 @@ private fun ChatMarkdownList(
                                 ),
                             )
                         } else {
-                            // Compose 单行 Text 在默认 Trim.Both 下忽略 lineHeight，行框即字体自然行高；
-                            // marker 必须与正文同 fontSize/lineHeight 才能共享度规对齐，
-                            // 层级差异只通过字形与颜色表达。
+
                             val bulletDepth = depth % 3
                             Text(
                                 text = when (bulletDepth) {
@@ -1697,9 +1659,6 @@ private fun ChatRevealAnnotatedText(
     )
 }
 
-/**
- * 标题自身只负责文字样式；与相邻块的距离由文档级排版统一决定。
- */
 @Composable
 private fun ChatHeadingBlock(
     model: MarkdownComponentModel,
@@ -1730,9 +1689,6 @@ private fun ChatHeadingBlock(
     }
 }
 
-/**
- * 代码块：顶栏显示语言标签并提供一键复制，正文等宽字体、超出横向滚动。
- */
 @Composable
 private fun ChatCodeBlock(
     code: String,
@@ -1830,9 +1786,6 @@ private fun ChatCodeBlock(
 
 private val ChatTableCellWidth = 112.dp
 
-/**
- * 表格：细描边容器 + 表头浅底加粗 + 行间发丝分隔线；列宽不足时整体横向滚动。
- */
 @Composable
 private fun ChatMarkdownTable(
     content: String,
@@ -1971,11 +1924,6 @@ private fun ChatMarkdownTableCell(
     )
 }
 
-/**
- * 引用块：圆角浅色竖条 + 弱化文字。
- * 库默认实现把竖条颜色绑死在 quote 文字颜色上，无法分别控制，因此竖条自绘；
- * 子节点仍交给 ambient components，流式显现与嵌套引用行为不变。
- */
 @Composable
 private fun ChatBlockQuote(model: MarkdownComponentModel) {
     val components = LocalMarkdownComponents.current
@@ -2036,7 +1984,6 @@ private fun ChatBlockQuote(model: MarkdownComponentModel) {
 private fun ASTNode.containsMarkdownImage(): Boolean =
     type == MarkdownElementTypes.IMAGE || children.any { child -> child.containsMarkdownImage() }
 
-/** 找到列表项中首个会被显现协调器管理的块，marker 以它作为显示时机。 */
 private fun ASTNode.firstRevealBlockKey(): RevealBlockKey? = when (type) {
     MarkdownTokenTypes.TEXT -> RevealBlockKey(startOffset)
 
@@ -2121,8 +2068,6 @@ private fun MutableSet<RevealBlockKey>.collectTableCellRevealKeys(node: ASTNode)
     node.children.forEach { child -> collectTableCellRevealKeys(child) }
 }
 
-// ── 思考过程 ─────────────────────────────────────────────────────────
-
 @Composable
 private fun ThinkingRow(
     message: ThinkingMessageUi,
@@ -2144,10 +2089,6 @@ private fun ThinkingRow(
         if (message.isStreaming && !manuallyExpanded) expanded = true
     }
 
-    // Markdown 状态在行级提前创建：行进入组合（工作过程展开或滚动到可视区）时就开始
-    // 后台解析，而不是等到首次点击展开。否则首帧只能测量 loading fallback 的纯文本高度，
-    // 解析完成后正文高度会再次变化；状态挂在行级还能在收起/展开循环中存活，
-    // 避免每次展开都重新走一遍异步解析。
     val stableMarkdownState = if (streamingState == null && completedMarkdownState == null) {
         rememberMarkdownState(
             content = message.content,
@@ -2162,7 +2103,6 @@ private fun ThinkingRow(
         label = "thinking_pulse",
     )
 
-    // compact 模式渲染在工作过程卡片内部，不再携带自己的卡片外壳，避免卡中卡。
     val containerModifier = if (compact) {
         modifier
             .fillMaxWidth()
@@ -2280,8 +2220,6 @@ private fun ThinkingRow(
     }
 }
 
-// ── 工具调用：优雅极简时间线 ─────────────────────────────────────────
-
 @Composable
 private fun ToolActivityInline(
     message: ToolActivityMessageUi,
@@ -2291,7 +2229,7 @@ private fun ToolActivityInline(
     compact: Boolean = false,
 ) {
     var isExpanded by rememberSaveable(message.id) { mutableStateOf(false) }
-    // 只有「当前浏览器」卡片订阅实时会话快照，避免每个工具行都跟随快照重组
+
     val browserSnapshot = if (showBrowserShortcut) {
         AgentBrowserSession.snapshots.collectAsState().value
     } else {
@@ -2314,7 +2252,7 @@ private fun ToolActivityInline(
             else -> null
         }
     }
-    // 失败原因直接显示在折叠行，不必展开卡片；剥离去重「失败」前缀与日志用的 code= 尾巴
+
     val failureSubtitle = if (message.status == ToolActivityStatusUi.Failed) {
         message.resultSummary
             ?.lineSequence()?.firstOrNull()
@@ -2338,7 +2276,7 @@ private fun ToolActivityInline(
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 5.dp),
         ) {
-            // 工具图标与思考行的灯泡共用同一前导槽位，保证卡片内左边缘对齐。
+
             Icon(
                 imageVector = iconForTool(message.toolName),
                 contentDescription = null,
@@ -2396,7 +2334,7 @@ private fun ToolActivityInline(
                     },
                     label = "tool_status",
                 ) { status ->
-                    // 成功是常态，只留低饱和度对勾；运行中与失败才占用视觉注意力
+
                     if (status == ToolActivityStatusUi.Success) {
                         Icon(
                             imageVector = Icons.Rounded.Check,
@@ -2498,12 +2436,6 @@ private fun ToolActivityInline(
     }
 }
 
-/**
- * 浏览器工具的实时页面预览：迷你地址条 + 当前视口截图。
- *
- * 截图只在页面加载中或内容稳定后的低频节拍刷新；组合销毁即停止，
- * 不做后台轮询。截图不可用时退化为图标占位。
- */
 @Composable
 private fun BrowserPagePreview(
     snapshot: BrowserSessionSnapshot,
@@ -2681,8 +2613,6 @@ private fun ToolCommandBlock(
     }
 }
 
-// ── Run trace：轻量入口行 ─────────────────────────────────────────────
-
 @Composable
 private fun RunTraceRow(
     message: RunTraceMessageUi,
@@ -2725,8 +2655,6 @@ private fun RunTraceRow(
         )
     }
 }
-
-// ── 工具摘要 ──────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -2772,8 +2700,6 @@ private fun ToolSummaryInline(
     }
 }
 
-// ── 建议语 ────────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SuggestionChipsRow(
@@ -2818,8 +2744,6 @@ private fun SuggestionChipsRow(
         }
     }
 }
-
-// ── 辅助 ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun ToolActivityStatusUi.statusColor() = when (this) {

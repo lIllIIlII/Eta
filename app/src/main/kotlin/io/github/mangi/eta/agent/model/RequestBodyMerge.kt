@@ -13,14 +13,6 @@ import kotlinx.serialization.json.longOrNull
 import org.json.JSONArray
 import org.json.JSONObject
 
-/**
- * 将用户自定义请求体字段递归合并到主请求 JSON。
- *
- * 规则：
- * - 如果 key 已存在且两边都是 [JSONObject]，递归合并。
- * - 如果 key 已存在且两边都是 [JSONArray]，替换为用户自定义数组（用户优先）。
- * - 其他情况直接覆盖（用户自定义优先）。
- */
 internal object RequestBodyMerge {
 
     fun mergeCustomBody(target: JSONObject, customBody: List<CustomBody>) {

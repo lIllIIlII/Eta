@@ -1,6 +1,5 @@
 package io.github.mangi.eta.agent.runtime
 
-/** 用户任务的运行引用；通知停止只消费这里登记的任务，不接管 Root daemon。 */
 internal class ExecutionLeaseRegistry {
     private data class Lease(val owner: Long?, val allowBoundFallback: Boolean, val onStop: () -> Unit)
     private val leases = linkedMapOf<String, Lease>()
@@ -27,7 +26,6 @@ internal class ExecutionLeaseRegistry {
         return true
     }
 
-    /** 旧服务销毁时，不能取消在其 stopSelf 之后为下一次启动登记的任务。 */
     @Synchronized fun drainOwner(owner: Long): List<() -> Unit> {
         if (activeOwner == owner) activeOwner = null
         val owned = leases.filterValues { it.owner == owner }

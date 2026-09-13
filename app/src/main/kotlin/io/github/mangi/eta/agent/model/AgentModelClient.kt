@@ -127,7 +127,7 @@ internal object AgentModelClient {
         }
         if (compactOnly) messages.remove(messages.length() - 1)
         val transcript = JSONArray()
-        // 旧 history 中的无效消息可能在组装时被跳过，系统边界不能由 history 条数倒推。
+
         val systemCount = AgentPromptBuilder.buildSystemMessages(
             config, skillContext, memoryContext, initialCapabilities.rootAvailable, roleplayContext,
         ).length()
@@ -307,14 +307,10 @@ internal object AgentModelClient {
     data class ToolResult(
         val content: String,
         val images: List<ModelImage> = emptyList(),
-        /**
-         * 敏感结果仍会供当前 Agent loop 使用，但工具参数与原始结果不会进入持久会话。
-         * 最终 assistant 自己组织的答复不受此标记影响。
-         */
+
         val sensitive: Boolean = false,
     )
 
-    /** 图片引用：入口侧可为本地 URI/路径，进入模型协议前必须解析为远程 URL 或 data URL。 */
     data class ModelImage(
         val reference: String,
         val mimeType: String,

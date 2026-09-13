@@ -120,10 +120,6 @@ internal class XiaoAiQueryCache(
         return entries.remove(dialogId.trim())
     }
 
-    /**
-     * Nlp.Request 的 Event ID 由小爱在出站时重新生成，不能假设它等于 setQueryInfo 的
-     * dialogId。优先按 ID 取值，再按同一轮查询文本关联；关联成功后同样消费一次。
-     */
     @Synchronized
     fun takeMatching(
         eventId: String,

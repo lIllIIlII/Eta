@@ -5,11 +5,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 
-/**
- * Skill 安装工具产生的、可供精确重放的冲突能力。
- *
- * 这里保留提交 SHA 和唯一候选路径，避免重试时扩展到仓库的其他版本或 Skill。
- */
 internal data class PendingSkillConflictCapability(
     val repository: String,
     val commitSha: String,
@@ -22,9 +17,6 @@ internal object PendingSkillConflictCapabilityParser {
     private const val INSTALL_TOOL_NAME = "skills_install_from_github"
     private val commitShaPattern = Regex("^[0-9a-fA-F]{40,64}$")
 
-    /**
-     * 只信任最近一个历史用户消息之后，且能回溯到对应 assistant tool call 的工具结果。
-     */
     fun parse(
         history: List<AgentModelClient.ConversationMessage>,
     ): PendingSkillConflictCapability? {
@@ -40,7 +32,7 @@ internal object PendingSkillConflictCapabilityParser {
             when (message.role) {
                 "assistant" -> parseToolCalls(message.toolCallsJson).forEach { call ->
                     if (call.name == INSTALL_TOOL_NAME) {
-                        // 新调用尚无结果时也不能复活更早的冲突。
+
                         latestInstallCallId = call.id
                         latestInstallResult = null
                     }

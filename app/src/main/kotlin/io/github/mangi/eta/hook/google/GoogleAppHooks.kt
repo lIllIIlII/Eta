@@ -36,15 +36,13 @@ internal object GoogleAppHooks {
         val hooks = HookRegistrar(module, rootLogger, "GoogleApp")
         val logger = hooks.logger
         return hooks.install {
-            // 机型伪装：在 Google 进程内伪装为 Samsung S24 Ultra，以放开一圈即搜能力。
-            // Build 字段是启动时一次性写入的副作用，作为一圈即搜的底层依赖始终执行。
+
             setBuildField(logger, Build::class.java, "MANUFACTURER", ModuleConfig.SPOOF_MANUFACTURER)
             setBuildField(logger, Build::class.java, "BRAND", ModuleConfig.SPOOF_BRAND)
             setBuildField(logger, Build::class.java, "MODEL", ModuleConfig.SPOOF_MODEL)
             setBuildField(logger, Build::class.java, "PRODUCT", ModuleConfig.SPOOF_PRODUCT)
             setBuildField(logger, Build::class.java, "DEVICE", ModuleConfig.SPOOF_DEVICE)
 
-            // 锁屏/亮屏补语音输入：开关在拦截回调里即时判断。
             hookFloatyVoiceCommand(hooks, classLoader)
         }
     }
@@ -101,21 +99,21 @@ internal object GoogleAppHooks {
     }
 
     private fun scheduleVoiceCommand(activity: Activity, logger: ModuleLogger, fromKeyguard: Boolean) {
-        // 锁屏走 LOCKSCREEN_VOICE_COMMAND，亮屏走 SCREEN_ON_VOICE_COMMAND；开关关闭则不补发。
+
         val prefKey = if (fromKeyguard) {
             Prefs.Keys.LOCKSCREEN_VOICE_COMMAND
         } else {
             Prefs.Keys.SCREEN_ON_VOICE_COMMAND
         }
         if (!Prefs.isEnabled(prefKey)) return
-        // 只去重同一个 FloatyActivity 实例的重复 onResume；关闭后立刻新开浮窗不受影响。
+
         if (!markVoiceCommandAttempt(activity)) {
             return
         }
 
         val scenario = if (fromKeyguard) "锁屏" else "亮屏"
         Handler(Looper.getMainLooper()).postDelayed({
-            // 即时关闭：开关在延迟任务排队期间可能已被用户关闭。
+
             if (!Prefs.isEnabled(prefKey)) {
                 clearVoiceCommandAttempt(activity)
                 return@postDelayed
@@ -124,7 +122,7 @@ internal object GoogleAppHooks {
                 clearVoiceCommandAttempt(activity)
                 return@postDelayed
             }
-            // 延迟期间锁屏状态发生变化则放弃：锁屏分支复查应仍锁屏，亮屏分支复查应仍解锁。
+
             if (activity.isKeyguardLocked() != fromKeyguard) {
                 clearVoiceCommandAttempt(activity)
                 return@postDelayed

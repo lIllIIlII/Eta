@@ -12,19 +12,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import io.github.mangi.eta.R
 
-/**
- * 弹窗底部按钮行：取消在左、确认在右，平分整行。
- * 遵循 Miuix 官方示例的双按钮惯例，全 App 弹窗统一使用。
- *
- * @param confirmText 确认按钮文案。
- * @param onCancel 取消回调。
- * @param onConfirm 确认回调。
- * @param modifier 根修饰符。
- * @param cancelText 取消按钮文案。
- * @param cancelEnabled 取消按钮是否可用。
- * @param confirmEnabled 确认按钮是否可用。
- * @param destructive 确认是否为破坏性操作（使用 error 配色）。
- */
 @Composable
 fun MiuixDialogActions(
     confirmText: String,

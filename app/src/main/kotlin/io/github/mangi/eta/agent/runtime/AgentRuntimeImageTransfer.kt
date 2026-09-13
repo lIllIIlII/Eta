@@ -18,12 +18,6 @@ import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * 把模型图片正文从 Messenger Bundle 中移出。
- *
- * 发送端只在自己的缓存目录暂存图片，并通过只读文件描述符交给 Runtime；接收端在后台读取后，
- * 才恢复成模型协议需要的 data URL。远程 HTTP(S) URL 不落盘，直接透传。
- */
 internal object AgentRuntimeImageTransfer {
     private const val MAX_IMAGE_COUNT = 8
     private const val MAX_IMAGE_BYTES = 12 * 1024 * 1024
@@ -129,7 +123,6 @@ internal object AgentRuntimeImageTransfer {
         }
     }
 
-    /** 必须在 Runtime 后台线程调用；会消费并关闭 [incoming] 持有的文件描述符。 */
     fun materialize(
         incoming: AgentRuntimeWire.IncomingRunRequest,
     ): AgentRuntimeWire.RunRequest = incoming.use { request ->

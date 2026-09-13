@@ -73,7 +73,7 @@ internal object ColorDirectHooks {
             executable = method,
             description = "CollectInfoActivity.M(Intent)"
         ) { chain ->
-            // 开关关闭则走原双指识屏逻辑。
+
             if (!Prefs.isEnabled(Prefs.Keys.DOUBLE_FINGER_CIRCLE_TO_SEARCH)) {
                 return@intercept chain.proceed()
             }

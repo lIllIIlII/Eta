@@ -293,7 +293,6 @@ class AgentTraceFormatterTest {
         )
         assertEquals("搜索文件 · 周报", searchFiles)
 
-        // 关键词单行化并截断，避免撑爆折叠行标题
         val longQuery = formatter.summarizeArguments(
             AgentModelClient.ToolCall(
                 id = "search-long",
@@ -304,7 +303,6 @@ class AgentTraceFormatterTest {
         assertFalse(longQuery.contains("\n"))
         assertTrue(longQuery.length <= "搜索应用 · ".length + 30 + 3)
 
-        // 非搜索类设备工具不追加 query
         val deviceStatus = formatter.summarizeArguments(
             AgentModelClient.ToolCall(
                 id = "device-status",
@@ -385,7 +383,6 @@ class AgentTraceFormatterTest {
         )
         assertEquals("失败 · 执行超时", timedOut)
 
-        // 协议错误仍保留 code= 标记
         val coded = formatter.summarizeResult(
             "terminal",
             AgentModelClient.ToolResult(
@@ -394,7 +391,6 @@ class AgentTraceFormatterTest {
         )
         assertEquals("失败 · code=JOB_NOT_FOUND", coded)
 
-        // 带中文原因的错误：原因面向用户，code= 留给日志提取
         val codedWithMessage = formatter.summarizeResult(
             "terminal",
             AgentModelClient.ToolResult(
@@ -403,7 +399,6 @@ class AgentTraceFormatterTest {
         )
         assertEquals("失败 · 请先启用终端/文件工具 · code=TERMINAL_TOOLS_DISABLED", codedWithMessage)
 
-        // 无输出的会话动作
         val closed = formatter.summarizeResult(
             "terminal",
             AgentModelClient.ToolResult(
@@ -449,7 +444,7 @@ class AgentTraceFormatterTest {
         )
 
         val previewLines = summary.lines()
-        // 状态行 + 最多 3 行预览 + 省略标记
+
         assertTrue(previewLines.size <= 5)
         assertTrue(summary.endsWith("…"))
         assertTrue(summary.length < longOutput.length)

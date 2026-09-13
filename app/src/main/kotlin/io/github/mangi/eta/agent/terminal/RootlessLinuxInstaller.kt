@@ -12,7 +12,6 @@ import kotlin.coroutines.coroutineContext
 
 internal class RootlessInstallFailure(val code: String, override val message: String) : IOException(message)
 
-/** rootfs 的归属始终是 App UID；解包不创建设备节点，也不跟随归档中的链接写文件。 */
 internal object RootlessLinuxInstaller {
     private const val MAX_EXPANDED_BYTES = 3L * 1024 * 1024 * 1024
     private const val MAX_ENTRIES = 200_000
@@ -64,7 +63,7 @@ internal object RootlessLinuxInstaller {
                 }
             }
         }
-        // 链接最后落盘；归档后续条目无法借链接覆盖环境外的文件。
+
         val pendingHardlinks = links.filter { it.third }.toMutableList()
         while (pendingHardlinks.isNotEmpty()) {
             var resolved = false

@@ -73,12 +73,6 @@ internal data class BrowserToolResult(
     val images: List<BrowserImage> = emptyList(),
 )
 
-/**
- * Eta 的共享 Agent 浏览器。
- *
- * WebView 可以离屏工作，也可以临时挂到 App 的浏览器页面供用户接管。
- */
-// 共享 WebView 必须跨工具调用存活；Activity 容器只在浏览器页面可见时持有，并在 dispose 时解绑。
 @SuppressLint("StaticFieldLeak")
 internal object AgentBrowserSession {
     private const val TOOL_NAME = "browser_use"
@@ -217,7 +211,6 @@ internal object AgentBrowserSession {
     fun reloadFromUser(): BrowserToolResult =
         executeFromExistingContext("reload", userInitiated = true)
 
-    /** 停止必须能越过串行操作锁，才能立刻唤醒正在等待导航的工具调用。 */
     fun stopFromUser(): BrowserToolResult {
         interruptCurrentAction(force = true)
         return toolResult(baseEnvelope("stop", ok = true, status = "ok"))
@@ -290,12 +283,6 @@ internal object AgentBrowserSession {
         }
     }
 
-    /**
-     * 聊天页工具卡片的实时预览截图。
-     *
-     * 只在主线程绘制当前视口，不占用串行操作锁、不中断 Agent 或用户操作；
-     * 页面不存在或绘制失败时返回 null，由调用方显示占位。
-     */
     fun capturePreview(): BrowserImage? {
         if (Looper.myLooper() == Looper.getMainLooper()) return null
         val view = webView ?: return null

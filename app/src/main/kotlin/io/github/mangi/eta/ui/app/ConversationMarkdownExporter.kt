@@ -14,10 +14,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * 会话导出：把内存消息流投影为自持的 Markdown 文档。
- * 文案全部由调用方注入，保持可本地化、可纯 JVM 测试。
- */
 internal object ConversationMarkdownExporter {
 
     data class Labels(
@@ -98,7 +94,7 @@ internal object ConversationMarkdownExporter {
                 append("\n\n- ").append(reference.absolutePath)
             }
             if (images.isNotEmpty()) {
-                // 图片在消息里是 data URL，体积达 MB 级，导出只保留数量说明。
+
                 append("\n\n_").append(labels.imagesFormat.format(images.size)).append('_')
             }
         }

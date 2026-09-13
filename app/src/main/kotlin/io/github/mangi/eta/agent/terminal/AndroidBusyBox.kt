@@ -1,6 +1,5 @@
 package io.github.mangi.eta.agent.terminal
 
-/** Root 侧 BusyBox 只能在 su 进程中探测，App 进程通常无权遍历 /data/adb。 */
 internal object AndroidBusyBox {
     private val candidates = listOf(
         "/data/adb/magisk/busybox",

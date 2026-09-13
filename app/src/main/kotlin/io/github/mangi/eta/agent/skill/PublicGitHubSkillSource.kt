@@ -44,7 +44,6 @@ internal class GitHubSkillSourceException(
     cause: Throwable? = null,
 ) : IOException(message, cause)
 
-/** 解析用户提供的 GitHub 仓库或 tree/blob URL，不接受镜像站、凭据与自定义端口。 */
 internal object GitHubSkillRepositoryParser {
     fun parse(value: String): GitHubSkillRepository {
         val input = value.trim()
@@ -175,12 +174,6 @@ internal object GitHubSkillRepositoryParser {
     private val REF_PATTERN = Regex("[A-Za-z0-9._/-]{1,200}")
 }
 
-/**
- * 公共 GitHub Skill 来源。
- *
- * 候选通过 GitHub API tree 发现；安装归档固定到 commit SHA 后从 codeload 下载。客户端不带
- * Token、不跟随重定向，并对 JSON 与 ZIP 响应分别设置硬上限。
- */
 internal class PublicGitHubSkillSource(
     cacheRoot: File,
     baseClient: OkHttpClient,

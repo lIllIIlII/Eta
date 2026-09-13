@@ -18,7 +18,7 @@ internal object AgentImageCodec {
     ): AgentModelClient.ModelImage {
         require(bytes.isNotEmpty()) { "图片内容为空" }
         require(bytes.size <= MAX_AGENT_IMAGE_BYTES) { "图片数据过大：${bytes.size}" }
-        // 全局发原图：直接 base64 原始 bytes，不 decode+re-encode（零损失），只读尺寸/mime
+
         val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
         val recognizedImage = bytes.hasSupportedImageMagic()
@@ -35,14 +35,12 @@ internal object AgentImageCodec {
         )
     }
 
-    /** 用户附件始终保持原始字节、编码和像素尺寸。 */
     fun fromAttachmentBytes(
         bytes: ByteArray,
         source: String,
         mimeHint: String = "image/jpeg",
     ): AgentModelClient.ModelImage = fromBytes(bytes, source, mimeHint)
 
-    /** Root screencap 只允许无损换编码，不改变截图尺寸。 */
     fun fromScreenBytes(
         bytes: ByteArray,
         source: String,
@@ -56,21 +54,16 @@ internal object AgentImageCodec {
         source: String,
     ): AgentModelClient.ModelImage = AgentModelImageEncoder.screen(bitmap, source)
 
-    /** 助理消息里的屏幕上下文使用有界视觉编码，不改变通用屏幕观察的无损合同。 */
     fun fromScreenContextBitmap(
         bitmap: Bitmap,
         source: String,
     ): AgentModelClient.ModelImage = AgentModelImageEncoder.screenContext(bitmap, source)
 
-    /**
-     * 为聊天列表生成独立的小预览。模型仍从 [image.reference] 读取原图，预览不会参与模型输入。
-     */
     fun previewFromReference(
         context: Context,
         image: AgentModelClient.ModelImage,
     ): AgentModelClient.ModelImage? = AgentModelImageEncoder.preview(context, image)
 
-    /** 文件工具图片会在发送模型前压缩，避免多张原图撑大 OpenAI 兼容请求体。 */
     fun fromToolFile(file: File, source: String): AgentModelClient.ModelImage? = runCatching {
         AgentModelImageEncoder.toolVision(file.readBytesLimited(), source)
     }.getOrNull()
@@ -133,10 +126,6 @@ internal object AgentImageCodec {
         }.getOrNull()
     }
 
-    /**
-     * 部分 ROM 的 Photo Picker 只实现 typed asset 或文件描述符读取。
-     * 依次尝试标准流、typed asset 和文件描述符，避免选图成功后附件被静默丢弃。
-     */
     private fun readContentUri(
         context: Context,
         uri: Uri,
@@ -163,10 +152,6 @@ internal object AgentImageCodec {
         }.getOrNull()
     }
 
-    /**
-     * 为跨进程请求解析图片。远程 URL 与已有 data URL 直接保留；本地 URI/路径只读取元数据，
-     * 正文稍后由 [io.github.mangi.eta.agent.runtime.AgentRuntimeImageTransfer] 通过文件描述符传输。
-     */
     fun fromTransferReference(
         context: Context?,
         value: String,

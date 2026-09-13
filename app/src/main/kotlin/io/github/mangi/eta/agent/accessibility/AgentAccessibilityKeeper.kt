@@ -5,12 +5,6 @@ import android.os.SystemClock
 import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.core.AndroidAgentLogger
 
-/**
- * 在 GUI 工具执行前确认 Eta 无障碍服务已经真实连接。
- *
- * 持久保护、Secure Settings 写入与断连重绑均由 system_server 后端负责。这里不申请
- * Root，也不直接改系统设置；保护关闭或后端不可用时 fail closed。
- */
 object AgentAccessibilityKeeper {
     internal fun ensureEnabledForGuiOperation(context: Context): AccessibilityEnableResult {
         val startedAt = SystemClock.elapsedRealtime()

@@ -13,12 +13,6 @@ import io.github.mangi.eta.core.safeLogType
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-/**
- * 进程内共享的 Runtime Binder 连接。
- *
- * 活跃调用共享同一连接，最后一个调用结束后短暂保活，以覆盖连续对话和结果确认；
- * 空闲超时后主动解绑，避免入口进程长期拉住 Eta。
- */
 internal object AgentRuntimeConnection {
     class Lease internal constructor(
         val messenger: Messenger,
@@ -69,7 +63,7 @@ internal object AgentRuntimeConnection {
         override fun onServiceDisconnected(name: ComponentName) {
             synchronized(lock) {
                 messenger = null
-                // 普通断线由系统自动重连当前 binding；不要叠加第二次 bindService。
+
                 binding = true
                 connectionLatch = CountDownLatch(1)
                 bindStartedAt = SystemClock.elapsedRealtime()
@@ -144,7 +138,7 @@ internal object AgentRuntimeConnection {
                 binding = false
                 connectionLatch.countDown()
             } else if (binding || messenger != null) {
-                // onNullBinding/onBindingDied 可能紧邻 bindService 返回；不要覆盖其清理结果。
+
                 bound = true
             }
         }

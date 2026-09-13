@@ -3,13 +3,6 @@ package io.github.mangi.eta.agent.terminal
 import io.github.mangi.eta.core.AgentLogger
 import kotlin.concurrent.thread
 
-/**
- * 控制台会话控制器：PTY 字节流原样透传，无状态行协议、无输出截断。
- *
- * 与 [UserTerminalController] 的差别在于交互模型：控制台面向全屏 TUI 与交互式 CLI，
- * 输入直接写 stdin（含方向键、Ctrl 组合键的转义字节），输出由调用方喂给
- * [TerminalScreenBuffer] 维护屏幕网格。多个控制台会话并存，按 sessionId 路由。
- */
 internal class ConsoleSessionController(
     private val logger: AgentLogger,
     private val linuxRootfsPath: String? = null,
@@ -105,7 +98,7 @@ internal class ConsoleSessionController(
                         onOutput(sessionId, buffer.copyOf(read))
                     }
                 } catch (_: Exception) {
-                    // 进程死亡或关闭时读端断开，交给 waiter 统一上报退出。
+
                 }
             }
             newSession.waiterThread = thread(name = "console-pty-waiter", isDaemon = true) {
@@ -114,8 +107,7 @@ internal class ConsoleSessionController(
                 processSupervisor.retireExitedProcess(process)
                 onExit(sessionId)
             }
-            // 落到环境默认工作目录；clear 清掉这条引导命令本身的回显。
-            // 用户工具的安装器常把 PATH 写进 profile；控制台 shell 不是 login shell，这里显式补齐。
+
             val defaultCwd = if (environment.isLinux) "/workspace" else TerminalRuntime.workspace(identity)
             val bootstrap = "mkdir -p ${shellQuote(defaultCwd)}; " +
                 "[ -f /etc/profile ] && . /etc/profile; " +
@@ -130,7 +122,6 @@ internal class ConsoleSessionController(
         }
     }
 
-    /** 向指定控制台会话写入输入字节（键盘文本、方向键/功能键转义序列）。会话不可用时静默丢弃。 */
     fun write(sessionId: String, bytes: ByteArray) {
         val current = synchronized(sessionLock) { sessions[sessionId] } ?: return
         if (current.closed || !current.process.isAlive) return
@@ -148,7 +139,6 @@ internal class ConsoleSessionController(
 
     fun write(sessionId: String, text: String) = write(sessionId, text.toByteArray(Charsets.UTF_8))
 
-    /** 关闭单个会话；只回收该进程树，不影响其它会话，也不触发 supervisor 全局关闭。 */
     fun closeSession(sessionId: String) {
         synchronized(sessionLock) {
             closeSessionLocked(sessionId)
@@ -172,7 +162,6 @@ internal class ConsoleSessionController(
         processSupervisor.unregisterProcess(current.process)
     }
 
-    /** 回收已退出的会话槽位，避免死会话占用并发上限。 */
     private fun pruneDeadSessionsLocked() {
         val deadIds = sessions.filterValues { it.closed || !it.process.isAlive }.keys.toList()
         deadIds.forEach { closeSessionLocked(it) }

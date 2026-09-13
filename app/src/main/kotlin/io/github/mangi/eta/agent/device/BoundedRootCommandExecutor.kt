@@ -9,11 +9,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * 只执行 Eta 内部构造的固定 Root 命令。调用方不得把模型参数直接拼成脚本。
- *
- * 输出在读取时即截断，但仍持续排空管道，避免子进程因缓冲区写满而挂起。
- */
 internal class BoundedRootCommandExecutor(
     private val logger: AgentLogger,
     private val rootAvailable: () -> Boolean = { RootAccess.isGranted },

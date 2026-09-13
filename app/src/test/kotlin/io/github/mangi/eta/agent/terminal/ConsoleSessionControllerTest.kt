@@ -10,7 +10,7 @@ class ConsoleSessionControllerTest {
 
     @Test
     fun openFailureLeavesNoSessionBehind() {
-        // 缺失 setsid 的 supervisor 保证进程启动失败，不依赖宿主机是否装有 BusyBox。
+
         val controller = ConsoleSessionController(
             logger = NoopLogger,
             processSupervisor = ShellProcessSupervisor(
@@ -56,7 +56,7 @@ class ConsoleSessionControllerTest {
                     onOutput = { _, _ -> },
                     onExit = { },
                 )
-                // 失败路径必须先于上限检查清理自身；反复失败不得退化出 SESSION_LIMIT_REACHED。
+
                 assertEquals(
                     "PROCESS_START_FAILED",
                     (result as ConsoleSessionController.OpenResult.Failed).code,
@@ -80,7 +80,7 @@ class ConsoleSessionControllerTest {
 
         assertTrue(controller.listSessions().isEmpty())
         assertFalse(controller.sessionAlive("missing"))
-        // close 后 supervisor 已 closing，任何 open 都不再启动进程。
+
         val result = controller.open(
             environment = TerminalEnvironment.ANDROID,
             cols = 80,

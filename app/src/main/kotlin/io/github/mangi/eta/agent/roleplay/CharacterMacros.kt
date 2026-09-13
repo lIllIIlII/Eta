@@ -6,7 +6,7 @@ import java.util.Locale
 
 internal object CharacterMacros {
     const val MAX_EXPANDED_CHARS = 2 * 1024 * 1024
-    // Android 的 ICU 正则要求字面量右花括号也转义，否则对象初始化会失败。
+
     private val token = Regex("\\{\\{([^{}]+)\\}\\}|<(USER|CHAR|BOT)>", RegexOption.IGNORE_CASE)
     private val opening = Regex("\\{\\{\\s*([^\\s:{}]+)")
 

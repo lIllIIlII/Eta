@@ -50,7 +50,7 @@ internal object SystemUiHooks {
                 executable = onLongPressedMethod,
                 description = "OplusOcrScreenBusiness.onLongPressed"
             ) { chain ->
-                // 开关关闭则走原 OCR 逻辑。
+
                 if (!Prefs.isEnabled(Prefs.Keys.GESTURE_BAR_CIRCLE_TO_SEARCH)) {
                     return@intercept chain.proceed()
                 }

@@ -58,7 +58,7 @@ internal object CircleToSearchInvoker {
     ): Boolean {
         val binder = getContextualSearchBinder() ?: return false
         return runCatching {
-            // 直接调用系统 binder，避免再走 OEM OCR/识屏分发链。
+
             val asInterface = resolveAsInterfaceMethod() ?: return@runCatching false
             val startContextualSearch = resolveStartContextualSearchMethod() ?: return@runCatching false
             val service = asInterface.invoke(null, binder) ?: return@runCatching false

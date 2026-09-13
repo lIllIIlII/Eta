@@ -113,12 +113,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
-/**
- * 聊天主体：消息流 + 底部输入框。
- *
- * AI 对话使用正向时间线：第一条消息从对话区顶部开始，后续回复顺序向下追加。
- * 空 assistant 占位不参与布局，避免刚发送时出现一个无内容消息节点。
- */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 internal fun AgentChatBody(
@@ -229,8 +223,7 @@ internal fun AgentChatBody(
         onBottomAnchorChanged = { keepBottomAnchored = it },
         onSubmit = { text ->
             sentFromKeyboard = true
-            // 发送即重新锚定底部：用户从历史上方直接发送时，同帧内 isStreaming 与
-            // 新消息一起到位，立即回到底部并恢复后续的流式平滑跟底。
+
             keepBottomAnchored = true
             onSubmit(text)
         },
@@ -304,7 +297,7 @@ private fun AgentChatScaffold(
     val surfaceColor = MiuixTheme.colorScheme.surface
     val frostEnabled = hasMessages && LocalBlurEnabled.current && isRuntimeShaderSupported()
     val messageBackdrop = rememberLayerBackdrop {
-        // Backdrop 必须包含不透明底色，否则文字边缘模糊到透明区域时会出现黑边。
+
         drawRect(surfaceColor)
         drawContent()
     }
@@ -406,13 +399,11 @@ internal fun AgentConversationMessages(
     modifier: Modifier = Modifier,
 ) {
     val timelineEntries = remember(visibleMessages) { visibleMessages.toTimelineEntries() }
-    // 复制按钮只出现在每轮对话的最终结果上，中间步骤的过渡文本不提供复制入口。
-    // 流式进行中当前这一轮尚未收尾，此时的“最后一条正文”只是中间步骤，不标记。
+
     val finalResultMessageIds = remember(visibleMessages, isStreaming) {
         resolveFinalResultMessageIds(visibleMessages, isStreaming = isStreaming)
     }
-    // 流式消息的渲染会话按 id 提升到列表层持有：item 滚出视口被 LazyColumn 销毁后，
-    // 滑回时复用同一解析会话与打字机进度，避免整段内容重新解析并重放显现动画。
+
     val streamingMarkdownStates = remember { mutableStateMapOf<String, StreamingMarkdownState>() }
     val bottomItemIndex = timelineEntries.size
     val isUserDragging by scrollState.interactionSource.collectIsDraggedAsState()
@@ -451,7 +442,7 @@ internal fun AgentConversationMessages(
         } else if (isStreaming || isTailRendering) {
             isBottomSettling = true
         } else if (isBottomSettling) {
-            // 显现完成后还会切换稳定排版并插入操作行，等其完成测量再收口跟底。
+
             withFrameNanos { }
             withFrameNanos { }
             snapshotFlow { !scrollState.canScrollForward }.first { it }
@@ -488,8 +479,6 @@ internal fun AgentConversationMessages(
         }
     }
 
-    // 流式输出及渲染收尾期间发布最新的跟底距离。历史消息中的步骤/思考展开同样会改变
-    // 列表高度，但那是用户主动查看内容，不能被误判成尾部文字增长。
     LaunchedEffect(scrollState) {
         snapshotFlow {
             val layoutInfo = scrollState.layoutInfo
@@ -500,8 +489,7 @@ internal fun AgentConversationMessages(
                 enabled = shouldFollowBottom,
                 bottomItemIndex = currentBottomItemIndex,
                 sentinelBottom = sentinel?.let { it.offset + it.size },
-                // 输入器高度属于滚动内容的 bottom inset，而不是滚动容器高度。
-                // 跟底目标应是 afterContentPadding 之前的正文边界。
+
                 viewportEnd = layoutInfo.viewportEndOffset - layoutInfo.afterContentPadding,
                 lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index,
             )
@@ -519,8 +507,6 @@ internal fun AgentConversationMessages(
             }
     }
 
-    // 一个持续存在的帧时钟从当前屏幕位置追向最新目标。新字符继续到达时只更新目标，
-    // 不取消并重启动画，因此速度连续；用户开始拖动后，enabled=false 会立即停止跟随。
     LaunchedEffect(scrollState, bottomFollowDecisions) {
         var remainingDistancePx = 0f
         var requestIndex: Int? = null
@@ -592,8 +578,6 @@ internal fun AgentConversationMessages(
         }
     }
 
-    // 滚动层保持整屏，输入器作为后绘制浮层；输入器高度进入列表的
-    // afterContentPadding，确保跟到底部时最后一行停在输入器上方。
     Box(modifier = modifier.clipToBounds()) {
         LazyColumn(
             state = scrollState,
@@ -621,8 +605,7 @@ internal fun AgentConversationMessages(
                 val itemModifier = Modifier.animateItem(
                     fadeInSpec = tween(durationMillis = 180),
                     placementSpec = null,
-                    // 历史轮次被编辑、删除或重新生成时必须立即退出；退出动画会让已从
-                    // 状态中裁掉的旧消息继续绘制，并与同位置的新流式消息短暂重叠。
+
                     fadeOutSpec = null,
                 )
                 when (entry) {
@@ -803,11 +786,6 @@ private fun List<AgentChatMessageUi>.toTimelineEntries(): List<AgentTimelineEntr
 private fun AgentChatMessageUi.isWorkProcessMessage(): Boolean =
     this is ThinkingMessageUi || this is ToolActivityMessageUi || this is ToolSummaryMessageUi
 
-/**
- * 一轮对话（两条用户消息之间）里最后一条 Agent 正文视为最终结果，其余为中间步骤。
- * 流式传输期间当前轮次尚未结束，最后一轮不标记，等传输结束后复制按钮才出现；
- * 之前已结束轮次的最终结果不受影响。
- */
 internal fun resolveFinalResultMessageIds(
     messages: List<AgentChatMessageUi>,
     isStreaming: Boolean = false,
@@ -873,7 +851,7 @@ private fun AgentChatBottomBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(ChatBottomFrostHeight)
-                    // DstIn 让真实磨砂在顶部透明、靠近输入框时逐渐变实，消除硬裁切线。
+
                     .graphicsLayer {
                         compositingStrategy = CompositingStrategy.Offscreen
                     }
@@ -894,7 +872,7 @@ private fun AgentChatBottomBar(
                     ),
             )
         } else {
-            // 空白主页沿用原来的轻微渐隐，不改变主页视觉。
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

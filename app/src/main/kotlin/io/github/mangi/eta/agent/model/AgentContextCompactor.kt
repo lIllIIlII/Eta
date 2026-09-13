@@ -4,7 +4,6 @@ import io.github.mangi.eta.agent.runtime.AgentRunController
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 只在完整工具交换之间生成候选摘要；全部验证通过后由会话一次性提交。 */
 internal class AgentContextCompactor(
     private val config: AgentModelClient.ModelConfig,
     private val provider: AgentProviderClient,
@@ -24,7 +23,7 @@ internal class AgentContextCompactor(
         val latestUser = history.indexOfLast {
             it.optString("role") == "user" && !it.has("_eta_observation")
         }
-        // 最新用户请求及其后尚在进行的工具链必须可以继续；长任务允许压缩该请求之后的已完成批次。
+
         val safeEnds = (1..history.size).filter { canSplit(history, it) }
         val recentLimit = config.contextWindow?.takeIf { it > 0 }?.let { (it * AgentContextBudget.RECENT_RATIO).toInt() }
         val initialEnd = safeEnds.lastOrNull { it <= history.size - AgentContextBudget.RECENT_MESSAGES }
@@ -81,7 +80,7 @@ internal class AgentContextCompactor(
         )))
         protectedUser?.let(result::put)
         history.drop(end).forEach { message ->
-            // 新摘要改变了前缀；旧 opaque items 不再代表同一份 Provider 上下文。
+
             result.put(if (ResponsesEphemeralState.outputItems(message) != null) {
                 AgentConversationCodec.toJsonObject(AgentConversationCodec.fromJsonObject(message))
             } else message)

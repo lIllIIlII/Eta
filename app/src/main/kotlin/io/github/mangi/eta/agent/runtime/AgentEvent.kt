@@ -30,7 +30,7 @@ internal sealed interface AgentEvent {
         companion object {
             const val PHASE_STARTED = "started"
             const val PHASE_COMPLETED = "completed"
-            /** 进行中的展示文案同时是 UI 判定运行态的依据，改动必须与 UI 侧同步。 */
+
             const val RUNNING_DETAIL = "正在压缩上下文…"
         }
     }
@@ -166,7 +166,7 @@ internal sealed interface AgentEvent {
         val resultSummary: String,
         val imageCount: Int,
         val imageBytes: Int,
-        /** 可选：旧版本 Runtime 不发送，消费端缺省时回退到摘要文本判断。 */
+
         val success: Boolean? = null,
     ) : AgentEvent {
         override fun toLogLine(): String =
@@ -226,7 +226,6 @@ private const val RESULT_CODE_MARKER = "code="
 private fun compactionTokenCount(value: Int): String =
     java.text.NumberFormat.getIntegerInstance().format(value)
 
-/** 摘要字段分隔符：旧格式用逗号，人文化摘要用间隔号。 */
 private val RESULT_FIELD_SEPARATORS = listOf(", ", " · ")
 
 private fun String.toSafeResultLogFields(): String = buildString {

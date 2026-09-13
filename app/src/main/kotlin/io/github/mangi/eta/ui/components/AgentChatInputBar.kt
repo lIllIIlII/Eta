@@ -95,9 +95,6 @@ private val StopIconSize = 10.dp
 private val ThinkingIconSize = 21.dp
 private val InputContainerShape = RoundedCornerShape(20.dp)
 
-/**
- * Agent 输入器始终保持同一空间结构，聚焦、输入和执行过程只改变状态，不搬动操作入口。
- */
 @Composable
 internal fun AgentChatInputBar(
     input: String,
@@ -144,8 +141,7 @@ internal fun AgentChatInputBar(
         .coerceAtLeast(ListPopupDefaults.MinPopupHeight)
 
     LaunchedEffect(isEditingMessage) {
-        // 编辑态由外部业务状态驱动；普通输入只保留在本地，避免每个字符把聊天舞台
-        // 的消息流、滚动和 Markdown 一起带入重组。
+
         if (isEditingMessage || wasEditingMessage) {
             textFieldState.setTextAndPlaceCursorAtEnd(input)
         }
@@ -158,7 +154,7 @@ internal fun AgentChatInputBar(
 
     LaunchedEffect(isStreaming, isCompacting) {
         if (isStreaming && !isCompacting) {
-            // 发送按钮、建议词和外部恢复都可能启动流式任务，统一清掉本地草稿。
+
             textFieldState.clearText()
         }
     }
@@ -345,7 +341,7 @@ internal fun AgentChatInputBar(
                             minWidth = ChatInputActionSize,
                             minHeight = ChatInputActionSize,
                         ) {
-                            // 保留统一的点击区域，仅让可见圆形与相邻操作图标保持同一尺寸。
+
                             val sendButtonColor by animateColorAsState(
                                 targetValue = when {
                                     isStreaming -> MiuixTheme.colorScheme.onSurface
@@ -403,7 +399,6 @@ internal fun AgentChatInputBar(
 
 }
 
-/** 思考强度选择保持为单一图标，当前状态仅通过图标颜色表达。 */
 @Composable
 private fun ThinkingEffortChip(
     effort: ReasoningEffort,
@@ -472,9 +467,6 @@ private fun ThinkingEffortChip(
     }
 }
 
-/**
- * 横向跟随 Chip，竖向则避开整个输入面板；默认下拉定位只会避开 Chip 自身。
- */
 @Composable
 private fun PendingImageStrip(
     images: List<PendingImageUi>,

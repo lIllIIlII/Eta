@@ -7,13 +7,6 @@ import io.github.mangi.eta.agent.roleplay.RoleplayRunContext
 import org.json.JSONArray
 import org.json.JSONObject
 
-/**
- * 单次 Agent run 的纯编排循环。
- *
- * 一次 assistant 响应及其完整工具批次构成一个 turn；
- * steering 只在 turn 结束后注入，不能用取消网络或关闭工具资源来模拟。循环不设置本地轮次上限，
- * 由模型自然结束、取消或错误终止。
- */
 internal class AgentLoop(
     private val config: AgentModelClient.ModelConfig,
     private val messages: JSONArray,
@@ -140,7 +133,7 @@ internal class AgentLoop(
                 }
                 checkNotNull(completedResponse)
             } finally {
-                // 同一回合的重试仍需原始观察；整个回合结束后才移除截图。
+
                 discardPendingToolImageMessage()
             }
             context.budget.observe(
@@ -207,7 +200,6 @@ internal class AgentLoop(
 
             publishTranscript()
 
-            // assistant 已自然结束时再检查 steering。这样补充消息不会丢掉刚完成的回答。
             if (purpose.allowsTools && appendPendingSteeringOrSeal()) {
                 round += 1
                 continue
@@ -344,13 +336,12 @@ internal class AgentLoop(
         round: Int,
         outcomes: List<ToolOutcome>,
     ) {
-        // 每个已完成结果立即落盘；图片观察仍统一放在完整工具批次之后。
+
         val imageOutcomes = outcomes.filter { outcome -> outcome.result.images.isNotEmpty() }
         if (imageOutcomes.isEmpty()) {
             return
         }
 
-        // 工具截图是瞬时观察，不是会话资产。下一次思考消费后立即删除。
         discardPendingToolImageMessage()
         val images = imageOutcomes.flatMap { outcome -> outcome.result.images }
         val toolNames = imageOutcomes

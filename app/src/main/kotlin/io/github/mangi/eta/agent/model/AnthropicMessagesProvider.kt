@@ -474,5 +474,4 @@ internal object AnthropicMessagesProvider : AgentProviderClient {
             cachedTokens?.let { json.put("cached_tokens", it) }
         }
 
-
 }

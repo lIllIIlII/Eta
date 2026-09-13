@@ -2,7 +2,6 @@ package io.github.mangi.eta.agent.model
 
 import org.json.JSONObject
 
-/** 只声明当前会话的历史检索，不允许模型指定其他会话身份。 */
 internal object AgentConversationToolCatalog {
     const val READ_HISTORY = "conversation_history"
 

@@ -90,7 +90,7 @@ internal object CharacterCardCodec {
             put("spec", JsonPrimitive("chara_card_v$version"))
             put("spec_version", JsonPrimitive("$version.0"))
             put("data", JsonObject(fields))
-            // 旧卡可能同时带顶层镜像，导出时保持同名字段一致。
+
             textFields.forEach { key -> if (containsKey(key)) fields[key]?.let { put(key, it) } }
         }
         return json.encodeToString(JsonObject.serializer(), JsonObject(root))

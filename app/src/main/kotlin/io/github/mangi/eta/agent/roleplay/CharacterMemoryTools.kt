@@ -11,7 +11,6 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
-/** 角色作用域由 Runtime 绑定，模型参数不能选择其他角色或现实记忆。 */
 internal class CharacterMemoryTools(
     private val context: Context,
     private val characterId: String,

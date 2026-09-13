@@ -514,7 +514,7 @@ class AgentRuntimeWireTest {
                 imageBytes = 2048,
                 success = true,
             ),
-            // 旧版本 Runtime 不发送 success 字段，缺省事件也必须完整往返
+
             AgentEvent.ToolFinished(
                 round = 2,
                 toolCallId = "call_legacy",

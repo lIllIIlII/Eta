@@ -1,13 +1,5 @@
 package io.github.mangi.eta.agent.terminal
 
-/**
- * 控制台屏幕缓冲区：把 PTY 字节流解析成固定行列的字符网格 + 滚动历史。
- *
- * 只实现 TUI 实际使用的 VT 子集：SGR、光标移动（CUP/CUU/CUD/CUF/CUB/CHA/VPA）、
- * 行/屏擦除（ED/EL）、滚动区（DECSTBM）、插入/删除行与字符（IL/DL/ICH/DCH）、
- * 备用屏幕（1049/1047/1048）、光标显隐（?25）。不识别的序列丢弃。
- * 宽字符（CJK/emoji）占两格，右边界自动换行采用 deferred wrap。
- */
 internal class TerminalScreenBuffer(
     val cols: Int,
     val rows: Int,
@@ -20,11 +12,10 @@ internal class TerminalScreenBuffer(
     data class Cell(
         val text: String = " ",
         val style: SgrStyle = SgrStyle.PLAIN,
-        /** 宽字符的第二个占位格。 */
+
         val continuation: Boolean = false,
     )
 
-    /** 一行网格；对象身份稳定，渲染层按 id + version 复用组合。 */
     class Line internal constructor(val id: Long, width: Int) {
         internal var cells = Array(width) { Cell() }
         var version = 0L
@@ -47,7 +38,6 @@ internal class TerminalScreenBuffer(
     private var screen = Array(rows) { Line(nextLineId++, cols) }
     private val scrollback = ArrayDeque<Line>()
 
-    /** 每次 process 产生变化时递增；渲染层据此拉取新快照。 */
     var version = 0L
         private set
 
@@ -70,15 +60,12 @@ internal class TerminalScreenBuffer(
     private var mainCursorRow = 0
     private var mainCursorCol = 0
 
-    /** 滚动历史 + 当前屏幕；Line 身份跨快照稳定。 */
     fun lines(): List<Line> = scrollback.toList() + screen.toList()
 
-    /** 测试与诊断用：当前屏幕的纯文本行（尾随空格裁剪）。 */
     fun dump(): List<String> = screen.map { line ->
         line.cells.joinToString("") { it.text }.trimEnd()
     }
 
-    /** 当前屏幕第 [row] 行（不含滚动历史）。 */
     fun screenLine(row: Int): Line = screen[row]
 
     fun process(text: String) {
@@ -133,7 +120,7 @@ internal class TerminalScreenBuffer(
             wrapPending = false
         }
         if (width == 2 && cursorCol == cols - 1) {
-            // 宽字符不压右边界，换到下一行书写
+
             cursorCol = 0
             linefeed()
         }
@@ -190,7 +177,6 @@ internal class TerminalScreenBuffer(
         }
     }
 
-    /** 擦除按背景色继承（bce）：擦出的空白保留当前 SGR 背景。 */
     private fun eraseCell(): Cell =
         if (style.bg != null) Cell(" ", SgrStyle(bg = style.bg)) else Cell()
 
@@ -450,21 +436,20 @@ internal class TerminalScreenBuffer(
     }
 }
 
-/** 终端字符宽度：CJK 全角/宽字符与 emoji 占两格，控制字符不占格。 */
 internal fun terminalCharWidth(codePoint: Int): Int = when {
     codePoint < 0x20 || codePoint in 0x7F..0x9F -> 0
-    codePoint in 0x1100..0x115F || // Hangul Jamo
-        codePoint in 0x2E80..0x303E || // CJK Radicals .. CJK Symbols
-        codePoint in 0x3041..0x33FF || // Hiragana .. CJK Compatibility
-        codePoint in 0x3400..0x4DBF || // CJK Ext A
-        codePoint in 0x4E00..0x9FFF || // CJK Unified
+    codePoint in 0x1100..0x115F ||
+        codePoint in 0x2E80..0x303E ||
+        codePoint in 0x3041..0x33FF ||
+        codePoint in 0x3400..0x4DBF ||
+        codePoint in 0x4E00..0x9FFF ||
         codePoint in 0xA000..0xA4CF ||
-        codePoint in 0xAC00..0xD7A3 || // Hangul Syllables
-        codePoint in 0xF900..0xFAFF || // CJK Compatibility Ideographs
+        codePoint in 0xAC00..0xD7A3 ||
+        codePoint in 0xF900..0xFAFF ||
         codePoint in 0xFE30..0xFE4F ||
-        codePoint in 0xFF00..0xFF60 || // Fullwidth Forms
+        codePoint in 0xFF00..0xFF60 ||
         codePoint in 0xFFE0..0xFFE6 ||
-        codePoint in 0x1F300..0x1F64F || // Emoji
+        codePoint in 0x1F300..0x1F64F ||
         codePoint in 0x1F900..0x1F9FF ||
         codePoint in 0x20000..0x2FFFD ||
         codePoint in 0x30000..0x3FFFD -> 2

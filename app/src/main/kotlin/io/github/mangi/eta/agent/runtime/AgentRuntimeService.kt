@@ -56,11 +56,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 
-/**
- * 模块进程内的通用 Agent Runtime。
- *
- * Hook 入口只发送请求和接收结果；模型调用、工具执行、运行状态浮窗都在本服务中完成。
- */
 internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -323,7 +318,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
             eventSink = { event -> sendEventTo(replyTo, event) },
             resultSink = { result -> sendResultTo(replyTo, result) },
         )
-        // Root 入口保留原有绑定服务生命周期；新增 FGS 不能成为厂商后台入口的新前置权限。
+
         val allowBoundFallback = RootAccess.isGranted
         val executionHeld = AgentExecutionService.acquire(
             this, "run:${request.runId}", allowBoundFallback = allowBoundFallback,
@@ -445,7 +440,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         result: AgentRuntimeWire.RunResult,
         events: List<AgentEvent>,
     ) {
-        // outbox 是终态与在途 checkpoint 之间的提交点；失败时保留 checkpoint 供下次恢复。
+
         persistCompletedRun(request, result)
         runCatching { persistArchivedRun(request, result, events) }
             .onFailure { throwable ->
@@ -542,7 +537,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
             AndroidAgentLogger.warnThrottled("runtime_result_delivery_failed") {
                 "Agent runtime result delivery failed: type=${throwable.safeLogType()}"
             }
-            // 不把传输失败伪装成已交付终态；引用使新客户端保留 outbox，等待完整恢复。
+
             val fallback = AgentRuntimeWire.RunResult(result.runId, false, "",
                 "完整结果传输失败，已保存的历史未删除。请重新打开会话恢复。",
                 contextSnapshotRef = result.runId, operation = result.operation)
@@ -805,12 +800,11 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
 
     private fun showOverlay() {
         if (orbView != null) return
-        // TYPE_ACCESSIBILITY_OVERLAY 免 SYSTEM_ALERT_WINDOW 权限；仅回退态（无障碍未启用）才需检查
+
         if (AgentAccessibilityService.current() == null && !Settings.canDrawOverlays(this)) return
         val wm = overlayContext().getSystemService(Context.WINDOW_SERVICE) as? WindowManager ?: return
         windowManager = wm
 
-        // ── 氛围光窗口：全屏触摸穿透，彩虹光圈，截图时被 takeScreenshotOfWindow 过滤 ─
         val glow = createOverlayComposeView {
             AgentOverlayGlow(state = state.value)
         }
@@ -823,7 +817,6 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         glowView = glow
         glowParams = glowLp
 
-        // ── 光球窗口：始终显示，右侧中下 ──────────────────────────────
         val orb = createOverlayComposeView {
             AgentOverlayOrb(
                 state = state.value,
@@ -841,7 +834,6 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         orbParams = orbLp
         orb.visibility = View.VISIBLE
 
-        // ── 小气泡窗口：展开态显示，跟随光球，窗口外触摸穿透 ─────────
         if (!collapsed.value) {
             showBubble(wm)
         }
@@ -908,8 +900,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
             setViewTreeSavedStateRegistryOwner(this@AgentRuntimeService)
             setContent {
                 MiuixTheme(colors = if (isNightMode()) darkColorScheme() else lightColorScheme()) {
-                    // 部分 ROM 会给 TYPE_ACCESSIBILITY_OVERLAY 分配软件 Canvas；Miuix 的
-                    // RuntimeShader 只检查系统版本，因此系统浮层统一使用其普通圆角回退。
+
                     CompositionLocalProvider(LocalSquircleEnabled provides false) {
                         content()
                     }
@@ -938,7 +929,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            // 右侧中下，贴近右边缘
+
             gravity = Gravity.END or Gravity.TOP
             x = dpToPx(8)
             y = (resources.displayMetrics.heightPixels * 0.6f).toInt()
@@ -956,7 +947,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            // 跟随光球：右侧中下，窗口外触摸穿透
+
             gravity = Gravity.END or Gravity.TOP
             x = dpToPx(72)
             y = (resources.displayMetrics.heightPixels * 0.6f).toInt()
@@ -974,7 +965,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
-            // 半屏底部居中，窗口外触摸穿透
+
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             x = 0
             y = 0
@@ -982,8 +973,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         }
 
     private fun overlayType(): Int =
-        // 无障碍服务可用时用 TYPE_ACCESSIBILITY_OVERLAY（免 SYSTEM_ALERT_WINDOW 权限，且截图
-        // filterValidWindows 可过滤）；需用无障碍服务 context 创建，否则 BadTokenException
+
         if (AgentAccessibilityService.current() != null)
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
         else
@@ -994,7 +984,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
 
     @Suppress("DEPRECATION")
     private fun glowLayoutParams(): WindowManager.LayoutParams {
-        // 真实屏幕高度（含状态栏 + 导航栏），MATCH_PARENT 在部分设备不含系统栏
+
         val realHeight = runCatching {
             val point = android.graphics.Point()
             @Suppress("DEPRECATION")
@@ -1012,8 +1002,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            // 全屏覆盖（含状态栏/导航栏），触摸穿透不拦截页面操作；
-            // TYPE_ACCESSIBILITY_OVERLAY 让 takeScreenshotOfWindow 过滤掉，对 Agent 透明
+
             gravity = Gravity.TOP or Gravity.START
             x = 0
             y = 0
@@ -1048,7 +1037,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         state.value = finalState
 
         if (hasExecutedForegroundTool) {
-            // 撤掉光球和小气泡，改显半屏结果卡片，不自动关闭，用户手动关闭
+
             collapsed.value = true
             removeAmbientWindows()
             windowManager?.let(::showResultCard)

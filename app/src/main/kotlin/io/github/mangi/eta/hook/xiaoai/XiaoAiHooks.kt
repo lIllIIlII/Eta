@@ -414,7 +414,7 @@ internal object XiaoAiHooks {
             executable = method,
             description = "XiaoAi MiSpeechEngine session clear",
         ) { chain ->
-            // BACK 关闭小爱浮层也会清理 session；这里只分离入口 UI，不能取消仍在执行的 Runtime。
+
             rendererSlot.detach()?.cancel(classLoader)
             queryCache.clear()
             turnTracker.clear()

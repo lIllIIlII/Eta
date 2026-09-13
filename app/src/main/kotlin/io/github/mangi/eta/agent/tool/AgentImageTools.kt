@@ -13,7 +13,6 @@ import java.io.IOException
 import java.io.InterruptedIOException
 import org.json.JSONObject
 
-/** 读取用户已明确指定的单张图片，并以临时视觉附件交给当前模型回合。 */
 internal class AgentImageTools(
     private val context: Context,
     private val root: BoundedRootCommandExecutor,

@@ -9,7 +9,6 @@ import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 读取经过真机验证的固定数据库；路径、表、字段与查询均不接受模型输入。 */
 internal class AgentPrivateDatabaseTools(
     private val context: Context,
     private val root: BoundedRootCommandExecutor,

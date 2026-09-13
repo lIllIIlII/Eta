@@ -71,12 +71,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.squircle.LocalSquircleEnabled
 
-/**
- * Eta 数字助理的用户界面窗口。
- *
- * 系统助理会话只负责承接电源键入口；这里固定使用全屏 TYPE_APPLICATION_OVERLAY，
- * 让输入法、动画和厂商助手式浮窗拥有同一个窗口生命周期。
- */
 internal class EtaAssistantOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
@@ -256,8 +250,7 @@ internal class EtaAssistantOverlayService : Service(), LifecycleOwner, SavedStat
                 appearance = appearance,
                 applyInterfaceScale = false,
             ) {
-                // ColorOS 在 Overlay 窗口切换期间可能短暂使用软件画布；RuntimeShader
-                // 无法在该画布绘制，因此浮窗统一使用 Miuix 的圆角回退路径。
+
                 CompositionLocalProvider(LocalSquircleEnabled provides false) {
                     EtaVoicePanel(
                         state = uiState,
@@ -954,10 +947,6 @@ internal class EtaAssistantOverlayService : Service(), LifecycleOwner, SavedStat
         @Volatile
         private var activeService: EtaAssistantOverlayService? = null
 
-        /**
-         * Eta 自己拥有入口浮层，直接关闭并等待具体 View detach；不能按包名猜测，
-         * 因为入口、Runtime 与结果浮层都属于同一个包。
-         */
         fun dismissForForegroundOperation(context: Context): Boolean {
             val service = activeService
             if (service == null) {
