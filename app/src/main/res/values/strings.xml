@@ -1198,6 +1198,10 @@
     <string name="settings_update_downloaded">Download complete, starting install</string>
     <string name="settings_update_download_failed">Download failed. Please try again.</string>
     <string name="settings_update_install_permission">Grant the install-unknown-apps permission in Settings first.</string>
+    <string name="cloud_sync_settings_summary">Cloud server, background sync and restore</string>
+    <string name="cloud_sync_title">Cloud sync</string>
+    <string name="cloud_sync_channel_name">Cloud sync</string>
+    <string name="cloud_sync_notification_title">Cloud sync running</string>
     <string name="cloud_sync_notification_text">Conversations are being synchronized with your cloud server</string>
     <string name="cloud_sync_enable">Enable cloud sync</string>
     <string name="cloud_sync_enable_summary">Conversations and MEMORY.md are synchronized with your own server through the built-in outbox queue. Data stays on your server.</string>
