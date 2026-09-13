@@ -1160,6 +1160,15 @@
     <string name="settings_update_latest_summary">目前已是最新版本。</string>
     <string name="settings_update_download">前往下載</string>
     <string name="settings_current_version">目前版本 %1$s</string>
+    <string name="background_resume_prompt">上一次任務因退出背景被中斷。請根據上方已保留的輸出，從中斷處繼續完成任務，不要重複已完成的部分。</string>
+    <string name="settings_hotupdate_title">熱更新配置</string>
+    <string name="settings_hotupdate_summary">遠端配置版本 %1$d</string>
+    <string name="settings_hotupdate_updated">熱更新配置已刷新</string>
+    <string name="settings_hotupdate_failed">熱更新配置刷新失敗，已使用本機快取</string>
+    <string name="settings_update_downloading">正在下載 %1$d%%</string>
+    <string name="settings_update_downloaded">下載完成，正在啟動安裝</string>
+    <string name="settings_update_download_failed">下載失敗，請重試。</string>
+    <string name="settings_update_install_permission">請先在系統設定中授權安裝未知應用。</string>
     <string name="cloud_sync_settings_summary">伺服器位址、背景同步與還原</string>
     <string name="cloud_sync_title">雲端同步</string>
     <string name="cloud_sync_channel_name">雲端同步</string>

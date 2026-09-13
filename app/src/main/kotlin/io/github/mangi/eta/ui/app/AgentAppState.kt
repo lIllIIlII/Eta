@@ -493,6 +493,7 @@ internal class AgentAppState(
 
         val acknowledgeAfterSave = mutableListOf<String>()
         val removeAfterSave = mutableListOf<String>()
+        val resumeCandidates = mutableListOf<AgentRunCheckpointStore.Checkpoint>()
         val changed = withContext(Dispatchers.Main) {
             var stateChanged = false
             plan.completed.forEach { recoveryPlan ->
@@ -530,6 +531,7 @@ internal class AgentAppState(
                     checkpoint = checkpoint,
                     interrupted = true,
                 ) || stateChanged
+                resumeCandidates += checkpoint
             }
             orphanRewrites.forEach { (conversationId, runId) ->
                 conversationsById[conversationId]?.let { state ->
@@ -553,9 +555,40 @@ internal class AgentAppState(
             }
         }
 
+        if (plan.reattach == null) {
+            resumeCandidates.lastOrNull { checkpoint ->
+                checkpoint.operation == AgentRuntimeWire.OP_CHAT &&
+                    (checkpoint.contextSnapshot != null || checkpoint.transcript.isNotEmpty())
+            }?.let { checkpoint ->
+                withContext(Dispatchers.Main) { autoResumeInterruptedRun(checkpoint) }
+            }
+        }
+
         plan.reattach?.let { checkpoint ->
             withContext(Dispatchers.Main) { startReattachedRun(checkpoint) }
         }
+    }
+
+    private fun autoResumeInterruptedRun(checkpoint: AgentRunCheckpointStore.Checkpoint) {
+        if (currentRunId != null) return
+        val conversationId = AgentUiHandoffPayload
+            .from(checkpoint.handoff.payload)
+            .conversationId
+        val restored = conversationsById[conversationId] ?: return
+        if (restored.roleplay != null) return
+        val resumePrompt = appContext.getString(R.string.background_resume_prompt)
+        val runId = "run-${java.util.UUID.randomUUID()}"
+        launchConversationRun(
+            conversationId = conversationId,
+            runId = runId,
+            prompt = resumePrompt,
+            images = emptyList(),
+            history = restored.history,
+            userHistoryMessage = AgentModelClient.buildUserHistoryMessage(resumePrompt, emptyList()),
+            messages = restored.messages,
+            state = restored,
+            reasoningEffort = restored.reasoningEffort,
+        )
     }
 
     private fun restoreCheckpointTrace(

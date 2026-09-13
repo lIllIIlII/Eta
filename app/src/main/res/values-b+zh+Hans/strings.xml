@@ -1172,6 +1172,15 @@
     <string name="settings_update_latest_summary">当前已是最新版本。</string>
     <string name="settings_update_download">前往下载</string>
     <string name="settings_current_version">当前版本 %1$s</string>
+    <string name="background_resume_prompt">上一次任务因退出后台被中断。请根据上方已保留的输出，从中断处继续完成任务，不要重复已完成的部分。</string>
+    <string name="settings_hotupdate_title">热更新配置</string>
+    <string name="settings_hotupdate_summary">远程配置版本 %1$d</string>
+    <string name="settings_hotupdate_updated">热更新配置已刷新</string>
+    <string name="settings_hotupdate_failed">热更新配置刷新失败，已使用本地缓存</string>
+    <string name="settings_update_downloading">正在下载 %1$d%%</string>
+    <string name="settings_update_downloaded">下载完成，正在启动安装</string>
+    <string name="settings_update_download_failed">下载失败，请重试。</string>
+    <string name="settings_update_install_permission">请先在系统设置中授权安装未知应用。</string>
     <string name="cloud_sync_settings_summary">服务器地址、后台同步与恢复</string>
     <string name="cloud_sync_title">云端同步</string>
     <string name="cloud_sync_channel_name">云端同步</string>

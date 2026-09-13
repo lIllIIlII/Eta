@@ -58,9 +58,12 @@ import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.accessibility.AccessibilityProtectionClient
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
+import io.github.mangi.eta.agent.hotupdate.HotUpdateState
 import io.github.mangi.eta.config.PowerAssistantTarget
 import io.github.mangi.eta.config.Prefs
+import io.github.mangi.eta.data.repository.ApkUpdateInstaller
 import io.github.mangi.eta.data.repository.AppUpdateChecker
+import io.github.mangi.eta.data.repository.HotUpdateRepository
 import io.github.mangi.eta.data.repository.ProviderRepository
 import io.github.mangi.eta.data.repository.RuntimeConfigRepository
 import io.github.mangi.eta.systemizer.GoogleAppSystemizerInstaller
@@ -115,6 +118,10 @@ internal fun SettingsScreen(
     var updateDialogSummary by remember { mutableStateOf("") }
     var updateDialogNewVersion by remember { mutableStateOf("") }
     var updateDownloadUrl by remember { mutableStateOf("") }
+    var updateDownloading by remember { mutableStateOf(false) }
+    var updateDownloadProgress by remember { mutableStateOf(0) }
+    var hotUpdateVersion by remember { mutableStateOf(HotUpdateState.snapshot().version) }
+    var hotUpdateRefreshing by remember { mutableStateOf(false) }
     val currentVersionName = remember { AppUpdateChecker.currentVersion(context) }
     val openAssistantSettings: () -> Unit = {
         val failed = runCatching {
@@ -650,12 +657,15 @@ internal fun SettingsScreen(
                 Card(modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) {
                     ArrowPreference(
                         title = stringResource(R.string.settings_check_update),
-                        summary = if (updateChecking) {
-                            stringResource(R.string.settings_check_update_checking)
-                        } else {
-                            stringResource(R.string.settings_current_version, currentVersionName)
+                        summary = when {
+                            updateChecking -> stringResource(R.string.settings_check_update_checking)
+                            updateDownloading -> stringResource(
+                                R.string.settings_update_downloading,
+                                updateDownloadProgress,
+                            )
+                            else -> stringResource(R.string.settings_current_version, currentVersionName)
                         },
-                        enabled = !updateChecking,
+                        enabled = !updateChecking && !updateDownloading,
                         startAction = {
                             PreferenceIcon(
                                 icon = Icons.Rounded.SystemUpdateAlt,
@@ -681,6 +691,36 @@ internal fun SettingsScreen(
 
                                     else -> context.getString(R.string.settings_update_latest_summary)
                                 }
+                            }
+                        },
+                    )
+                    ArrowPreference(
+                        title = stringResource(R.string.settings_hotupdate_title),
+                        summary = if (hotUpdateRefreshing) {
+                            stringResource(R.string.settings_check_update_checking)
+                        } else {
+                            stringResource(R.string.settings_hotupdate_summary, hotUpdateVersion)
+                        },
+                        enabled = !hotUpdateRefreshing,
+                        startAction = {
+                            PreferenceIcon(
+                                icon = Icons.Rounded.CloudSync,
+                            )
+                        },
+                        onClick = {
+                            hotUpdateRefreshing = true
+                            coroutineScope.launch {
+                                val outcome = runCatching {
+                                    HotUpdateRepository.refreshSuspend(context)
+                                }.getOrNull()
+                                hotUpdateRefreshing = false
+                                hotUpdateVersion = HotUpdateState.snapshot().version
+                                val message = if (outcome?.applied == true) {
+                                    R.string.settings_hotupdate_updated
+                                } else {
+                                    R.string.settings_hotupdate_failed
+                                }
+                                Toast.makeText(context.applicationContext, context.getString(message), Toast.LENGTH_SHORT).show()
                             }
                         },
                     )
@@ -752,7 +792,7 @@ internal fun SettingsScreen(
                     stringResource(R.string.settings_check_update)
                 },
                 summary = updateDialogSummary,
-                onDismissRequest = { updateDialogVisible = false },
+                onDismissRequest = { if (!updateDownloading) updateDialogVisible = false },
             ) {
                 MiuixDialogActions(
                     confirmText = if (updateDialogNewVersion.isNotBlank() && updateDownloadUrl.isNotBlank()) {
@@ -760,17 +800,44 @@ internal fun SettingsScreen(
                     } else {
                         stringResource(R.string.ui_knew_cb63c6)
                     },
-                    onCancel = { updateDialogVisible = false },
+                    onCancel = { if (!updateDownloading) updateDialogVisible = false },
                     onConfirm = {
-                        updateDialogVisible = false
-                        val targetUrl = updateDownloadUrl.ifBlank { AppUpdateChecker.REPO_URL }
-                        runCatching {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(targetUrl),
-                                ),
-                            )
+                        val targetUrl = updateDownloadUrl
+                        if (targetUrl.isBlank()) {
+                            updateDialogVisible = false
+                            return@MiuixDialogActions
+                        }
+                        if (updateDownloading) return@MiuixDialogActions
+                        if (!ApkUpdateInstaller.canRequestInstall(context)) {
+                            updateDialogVisible = false
+                            Toast.makeText(
+                                context.applicationContext,
+                                context.getString(R.string.settings_update_install_permission),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            ApkUpdateInstaller.installPermissionSettings(context)
+                            return@MiuixDialogActions
+                        }
+                        updateDownloading = true
+                        updateDownloadProgress = 0
+                        coroutineScope.launch {
+                            val downloaded = runCatching {
+                                ApkUpdateInstaller.download(context, targetUrl) { progress ->
+                                    updateDownloadProgress = progress
+                                }
+                            }.getOrNull()
+                            updateDownloading = false
+                            if (downloaded != null) {
+                                updateDialogVisible = false
+                                Toast.makeText(
+                                    context.applicationContext,
+                                    context.getString(R.string.settings_update_downloaded),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                runCatching { ApkUpdateInstaller.install(context, downloaded) }
+                            } else {
+                                updateDialogSummary = context.getString(R.string.settings_update_download_failed)
+                            }
                         }
                     },
                 )

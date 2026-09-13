@@ -16,6 +16,7 @@ import io.github.mangi.eta.data.repository.CloudSyncRepository
 import io.github.mangi.eta.data.repository.AppearanceSettingsRepository
 import io.github.mangi.eta.data.repository.McpServerRepository
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
+import io.github.mangi.eta.data.repository.HotUpdateRepository
 import io.github.mangi.eta.data.repository.ProviderRepository
 import io.github.mangi.eta.ui.app.PredictiveBackController
 import io.github.libxposed.service.XposedService
@@ -66,6 +67,13 @@ class EtaApp : Application(), XposedServiceHelper.OnServiceListener {
                 if (cloudConfig.enabled && cloudConfig.backgroundSync) {
                     CloudSyncService.start(this@EtaApp)
                 }
+            }
+            runCatching {
+                HotUpdateRepository.refresh(this@EtaApp)
+            }.onFailure { throwable ->
+                AndroidAgentLogger.warn(
+                    "Hot update refresh failed: type=${throwable.safeLogType()}"
+                )
             }
         }
     }

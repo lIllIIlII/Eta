@@ -31,7 +31,6 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
-import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.media.AgentImageCodec
 import io.github.mangi.eta.agent.model.AgentModelClient
 import io.github.mangi.eta.agent.overlay.AgentHapticFeedback
@@ -319,16 +318,13 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
             resultSink = { result -> sendResultTo(replyTo, result) },
         )
 
-        val allowBoundFallback = RootAccess.isGranted
         val executionHeld = AgentExecutionService.acquire(
-            this, "run:${request.runId}", allowBoundFallback = allowBoundFallback,
+            this, "run:${request.runId}", allowBoundFallback = true,
         ) { session.controller.cancel() }
-        if (!executionHeld && !allowBoundFallback) {
-            session.complete(AgentRuntimeWire.RunResult(
-                runId = request.runId, ok = false, content = "",
-                error = "无法启动后台执行服务，请返回 Eta 后重试",
-            )) {}
-            return
+        if (!executionHeld) {
+            AndroidAgentLogger.warnThrottled("runtime_execution_lease_unavailable") {
+                "Agent runtime proceeding without execution service lease"
+            }
         }
         activeSession = session
         lastCompletedRunContext = null
