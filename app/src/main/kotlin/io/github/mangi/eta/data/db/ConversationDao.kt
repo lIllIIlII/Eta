@@ -141,6 +141,41 @@ internal interface ConversationDao : ChunkedTextDao {
         }
     }
 
+    @Query("SELECT * FROM conversations WHERE id = :conversationId")
+    suspend fun conversationEntityRow(conversationId: String): ConversationEntity?
+
+    @Transaction
+    suspend fun conversationEntity(conversationId: String): ConversationEntity? = conversationEntityRow(conversationId)?.let { row ->
+        row.copy(
+            appliedRuntimeRunIdsJson = restoreText("conversations", row.id, "runs", row.appliedRuntimeRunIdsJson),
+            roleplayJson = restoreText("conversations", row.id, "roleplay", row.roleplayJson),
+            revisionsJson = restoreText("conversations", row.id, "revisions", row.revisionsJson),
+        )
+    }
+
+    @Query("DELETE FROM conversations WHERE id = :conversationId")
+    suspend fun deleteConversationRow(conversationId: String)
+
+    @Query("DELETE FROM conversation_messages WHERE conversation_id = :conversationId")
+    suspend fun deleteMessagesForConversation(conversationId: String)
+
+    @Query("DELETE FROM conversation_context_checkpoints WHERE conversation_id = :conversationId")
+    suspend fun deleteContextCheckpointForConversation(conversationId: String)
+
+    @Transaction
+    suspend fun deleteConversationCompletely(conversationId: String) {
+        deleteMessagesForConversation(conversationId)
+        deleteContextCheckpointForConversation(conversationId)
+        deleteConversationRow(conversationId)
+    }
+
+    @Query("SELECT * FROM conversation_messages WHERE conversation_id = :conversationId ORDER BY sort_index ASC")
+    suspend fun messageRowsFor(conversationId: String): List<ConversationMessageEntity>
+
+    @Transaction
+    suspend fun messagesFor(conversationId: String): List<ConversationMessageEntity> =
+        messageRowsFor(conversationId).map { restoreMessage(it) }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertState(state: ConversationStateEntity)
 

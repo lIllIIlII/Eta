@@ -12,6 +12,7 @@ import io.github.mangi.eta.agent.model.AgentModelFailure
 import io.github.mangi.eta.agent.model.AgentHttpClient
 import io.github.mangi.eta.agent.memory.AgentMemoryContext
 import io.github.mangi.eta.agent.memory.AgentMemoryContextBuilder
+import io.github.mangi.eta.agent.memory.MemoryAutoUpdater
 import io.github.mangi.eta.agent.roleplay.CharacterMemoryTools
 import io.github.mangi.eta.agent.roleplay.RoleplayRunContext
 import io.github.mangi.eta.agent.mcp.McpRunSnapshot
@@ -272,6 +273,13 @@ internal class AgentRuntimeRunExecutor(
                 )
             }
             response = completedResponse
+            if (request.operation == AgentRuntimeWire.OP_CHAT) {
+                MemoryAutoUpdater.submit(
+                    config = request.config,
+                    userText = request.prompt,
+                    assistantText = completedResponse.content,
+                )
+            }
             AgentRuntimeWire.RunResult(
                 runId = request.runId,
                 ok = true,

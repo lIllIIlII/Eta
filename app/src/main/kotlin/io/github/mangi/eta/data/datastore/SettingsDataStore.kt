@@ -28,6 +28,7 @@ internal object SettingsDataStore {
     private val SELECTED_PROVIDER_ID = stringPreferencesKey("selected_provider_id")
     private val SELECTED_MODEL_ID = stringPreferencesKey("selected_model_id")
     private val MEMORY_ENABLED = booleanPreferencesKey("memory_enabled")
+    private val MEMORY_AUTO_UPDATE_ENABLED = booleanPreferencesKey("memory_auto_update_enabled")
     private val LINUX_DISTRIBUTION = stringPreferencesKey("linux_distribution")
     private val APPEARANCE_THEME_MODE = stringPreferencesKey("appearance_theme_mode")
     private val APPEARANCE_MONET_ENABLED = booleanPreferencesKey("appearance_monet_enabled")
@@ -165,6 +166,28 @@ internal object SettingsDataStore {
 
     suspend fun setMemoryEnabled(enabled: Boolean) {
         updateSettings { it.copy(memoryEnabled = enabled) }
+    }
+
+    fun memoryAutoUpdateEnabledFlow(): Flow<Boolean> =
+        settingsFlow().map { it.memoryAutoUpdateEnabled }
+
+    suspend fun memoryAutoUpdateEnabled(): Boolean {
+        ensureInitialized()
+        return dataStore.data
+            .catch { cause ->
+                if (cause is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw cause
+                }
+            }
+            .map { prefs -> prefs[MEMORY_AUTO_UPDATE_ENABLED] ?: true }
+            .first()
+    }
+
+    suspend fun setMemoryAutoUpdateEnabled(enabled: Boolean) {
+        ensureInitialized()
+        dataStore.edit { prefs -> prefs[MEMORY_AUTO_UPDATE_ENABLED] = enabled }
     }
 
     suspend fun setLinuxDistribution(value: String?) {

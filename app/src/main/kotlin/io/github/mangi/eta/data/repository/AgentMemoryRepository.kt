@@ -6,6 +6,9 @@ import io.github.mangi.eta.data.datastore.SettingsDataStore
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 
 internal data class AgentMemorySnapshot(
@@ -306,15 +309,32 @@ internal object AgentMemoryRepository {
     @Volatile
     private lateinit var store: AgentMemoryStore
 
+    @Volatile
+    private var cachedSnapshot: AgentMemorySnapshot? = null
+
+    @Volatile
+    private var appContext: Context? = null
+
     fun init(context: Context) {
         if (!::store.isInitialized) {
             store = AgentMemoryStore(context.applicationContext.filesDir)
+            appContext = context.applicationContext
         }
     }
 
     fun snapshot(): AgentMemorySnapshot {
         ensureInitialized()
-        return store.snapshot()
+        cachedSnapshot?.let { return it }
+        val fresh = store.snapshot()
+        cachedSnapshot = fresh
+        return fresh
+    }
+
+    fun notifyCloudPushNeeded() {
+        val context = appContext ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching { CloudSyncRepository.enqueueMemoryPush(context) }
+        }
     }
 
     fun read(
@@ -328,12 +348,17 @@ internal object AgentMemoryRepository {
 
     fun mutate(mutation: AgentMemoryMutation): AgentMemoryWriteResult {
         ensureInitialized()
-        return store.mutate(mutation)
+        val result = store.mutate(mutation)
+        when (result) {
+            is AgentMemoryWriteResult.Success -> cachedSnapshot = result.snapshot
+            is AgentMemoryWriteResult.Conflict -> cachedSnapshot = result.snapshot
+        }
+        return result
     }
 
     fun replaceAll(content: String): AgentMemorySnapshot {
         ensureInitialized()
-        return store.replaceAll(content)
+        return store.replaceAll(content).also { cachedSnapshot = it }
     }
 
     fun enabledFlow(): Flow<Boolean> = SettingsDataStore.memoryEnabledFlow()

@@ -12,6 +12,7 @@ import io.github.mangi.eta.data.db.ConversationMessageEntity
 import io.github.mangi.eta.data.db.ConversationStateEntity
 import io.github.mangi.eta.data.db.EtaDatabase
 import io.github.mangi.eta.data.model.ReasoningEffort
+import io.github.mangi.eta.data.repository.CloudSyncRepository
 import io.github.mangi.eta.ui.model.AgentChatHomeUiState
 import io.github.mangi.eta.ui.model.AgentChatMessageUi
 import io.github.mangi.eta.ui.model.AgentMessageUi
@@ -104,6 +105,14 @@ internal object AgentConversationStore {
                         contextCheckpoints = contextCheckpoints,
                         state = selected?.let { ConversationStateEntity(selectedConversationId = it) },
                     )
+                runCatching {
+                    CloudSyncRepository.enqueueConversationRows(
+                        context = appContext,
+                        conversations = conversations,
+                        messages = messages,
+                        contextCheckpoints = contextCheckpoints,
+                    )
+                }
             }
         }
     }

@@ -611,6 +611,12 @@ internal fun AgentConversationMessages(
             items(
                 items = timelineEntries,
                 key = { it.key },
+                contentType = { entry ->
+                    when (entry) {
+                        is AgentTimelineEntry.Message -> entry.message::class
+                        else -> entry::class
+                    }
+                },
             ) { entry ->
                 val itemModifier = Modifier.animateItem(
                     fadeInSpec = tween(durationMillis = 180),

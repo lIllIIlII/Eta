@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +31,7 @@ import io.github.mangi.eta.ui.components.MiuixScaffold
 import io.github.mangi.eta.ui.layout.horizontalCutoutPadding
 import io.github.mangi.eta.ui.model.AgentMemoryAction
 import io.github.mangi.eta.ui.model.AgentMemoryUiState
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -49,6 +52,7 @@ internal fun AgentMemoryScreen(
     onAction: (AgentMemoryAction) -> Unit,
 ) {
     var showClearDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     MiuixScaffold(
         title = stringResource(R.string.ui_memory_b55ff5),
@@ -87,6 +91,26 @@ internal fun AgentMemoryScreen(
                             checked = state.enabled,
                             enabled = !state.isLoading,
                             onCheckedChange = { onAction(AgentMemoryAction.ToggleEnabled(it)) },
+                        )
+                        var autoUpdateEnabled by remember {
+                            mutableStateOf(io.github.mangi.eta.data.model.Settings().memoryAutoUpdateEnabled)
+                        }
+                        LaunchedEffect(Unit) {
+                            autoUpdateEnabled = io.github.mangi.eta.data.datastore.SettingsDataStore
+                                .memoryAutoUpdateEnabled()
+                        }
+                        SwitchPreference(
+                            title = stringResource(R.string.memory_auto_update_enable),
+                            summary = stringResource(R.string.memory_auto_update_summary),
+                            checked = autoUpdateEnabled,
+                            enabled = state.enabled,
+                            onCheckedChange = { enabled ->
+                                autoUpdateEnabled = enabled
+                                scope.launch {
+                                    io.github.mangi.eta.data.datastore.SettingsDataStore
+                                        .setMemoryAutoUpdateEnabled(enabled)
+                                }
+                            },
                         )
                         BasicComponent(
                             title = stringResource(R.string.ui_core_memory_injection_budget_48b5d5),

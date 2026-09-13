@@ -3,6 +3,7 @@ package io.github.mangi.eta
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
+import io.github.mangi.eta.agent.cloud.CloudSyncService
 import io.github.mangi.eta.agent.skill.SkillRuntime
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.terminal.TerminalRuntime
@@ -11,6 +12,7 @@ import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.core.safeLogType
 import io.github.mangi.eta.data.datastore.SettingsDataStore
 import io.github.mangi.eta.data.repository.AgentMemoryRepository
+import io.github.mangi.eta.data.repository.CloudSyncRepository
 import io.github.mangi.eta.data.repository.AppearanceSettingsRepository
 import io.github.mangi.eta.data.repository.McpServerRepository
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
@@ -66,6 +68,12 @@ class EtaApp : Application(), XposedServiceHelper.OnServiceListener {
                 AndroidAgentLogger.warn(
                     "Agent skill index prewarm failed: type=${throwable.safeLogType()}"
                 )
+            }
+            runCatching {
+                val cloudConfig = CloudSyncRepository.config(this@EtaApp)
+                if (cloudConfig.enabled && cloudConfig.backgroundSync) {
+                    CloudSyncService.start(this@EtaApp)
+                }
             }
         }
     }

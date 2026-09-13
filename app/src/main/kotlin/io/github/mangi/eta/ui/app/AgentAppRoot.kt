@@ -61,6 +61,7 @@ import io.github.mangi.eta.ui.pages.providers.ModelProviderDetailScreen
 import io.github.mangi.eta.ui.pages.providers.ModelProviderListScreen
 import io.github.mangi.eta.ui.screens.backup.DataBackupScreen
 import io.github.mangi.eta.ui.screens.browser.AgentBrowserScreen
+import io.github.mangi.eta.ui.screens.cloud.CloudSyncScreen
 import io.github.mangi.eta.ui.screens.chat.AgentChatScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterLibraryScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterDetailScreen
@@ -613,6 +614,9 @@ fun AgentAppRoot(
                     onExport = agentState::exportBackup,
                     onImport = agentState::importBackup,
                 )
+            }
+            entry<AppRoute.CloudSync>(swipeDismiss = swipeDismiss) {
+                CloudSyncScreen(onBack = ::popRoute)
             }
             entry<AppRoute.Memory>(swipeDismiss = swipeDismiss) {
                 LaunchedEffect(Unit) {

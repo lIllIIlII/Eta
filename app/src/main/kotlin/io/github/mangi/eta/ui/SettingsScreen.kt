@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Extension
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.SupportAgent
 import androidx.compose.material.icons.rounded.SwipeUp
+import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.TheaterComedy
 import androidx.compose.material.icons.rounded.TouchApp
@@ -58,6 +60,7 @@ import io.github.mangi.eta.agent.accessibility.AccessibilityProtectionClient
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
 import io.github.mangi.eta.config.PowerAssistantTarget
 import io.github.mangi.eta.config.Prefs
+import io.github.mangi.eta.data.repository.AppUpdateChecker
 import io.github.mangi.eta.data.repository.ProviderRepository
 import io.github.mangi.eta.data.repository.RuntimeConfigRepository
 import io.github.mangi.eta.systemizer.GoogleAppSystemizerInstaller
@@ -114,6 +117,12 @@ internal fun SettingsScreen(
         mutableStateOf(AccessibilityProtectionClient.isEnabled(context))
     }
     var accessibilityProtectionPending by remember { mutableStateOf(false) }
+    var updateChecking by remember { mutableStateOf(false) }
+    var updateDialogVisible by remember { mutableStateOf(false) }
+    var updateDialogSummary by remember { mutableStateOf("") }
+    var updateDialogNewVersion by remember { mutableStateOf("") }
+    var updateDownloadUrl by remember { mutableStateOf("") }
+    val currentVersionName = remember { AppUpdateChecker.currentVersion(context) }
     val openAssistantSettings: () -> Unit = {
         val failed = runCatching {
             context.startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS))
@@ -526,6 +535,17 @@ internal fun SettingsScreen(
                         },
                         onClick = { onNavigate(AppRoute.DataBackup) },
                     )
+
+                    ArrowPreference(
+                        title = stringResource(R.string.cloud_sync_title),
+                        summary = stringResource(R.string.cloud_sync_settings_summary),
+                        startAction = {
+                            PreferenceIcon(
+                                icon = Icons.Rounded.CloudSync,
+                            )
+                        },
+                        onClick = { onNavigate(AppRoute.CloudSync) },
+                    )
                 }
             }
 
@@ -645,6 +665,42 @@ internal fun SettingsScreen(
                 SmallTitle(stringResource(R.string.ui_about_bed172))
                 Card(modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) {
                     ArrowPreference(
+                        title = stringResource(R.string.settings_check_update),
+                        summary = if (updateChecking) {
+                            stringResource(R.string.settings_check_update_checking)
+                        } else {
+                            stringResource(R.string.settings_current_version, currentVersionName)
+                        },
+                        enabled = !updateChecking,
+                        startAction = {
+                            PreferenceIcon(
+                                icon = Icons.Rounded.SystemUpdateAlt,
+                            )
+                        },
+                        onClick = {
+                            updateChecking = true
+                            coroutineScope.launch {
+                                val release = runCatching {
+                                    withContext(Dispatchers.IO) { AppUpdateChecker.latestRelease() }
+                                }.getOrNull()
+                                updateChecking = false
+                                updateDialogVisible = true
+                                updateDialogNewVersion = release?.versionName.orEmpty()
+                                updateDownloadUrl = release?.downloadUrl.orEmpty()
+                                updateDialogSummary = when {
+                                    release == null -> context.getString(R.string.settings_check_update_failed)
+                                    AppUpdateChecker.isNewer(release.versionName, currentVersionName) ->
+                                        context.getString(
+                                            R.string.settings_update_available_summary,
+                                            release.versionName,
+                                        )
+
+                                    else -> context.getString(R.string.settings_update_latest_summary)
+                                }
+                            }
+                        },
+                    )
+                    ArrowPreference(
                         title = stringResource(R.string.ui_source_code_740296),
                         startAction = {
                             PreferenceIcon(
@@ -661,7 +717,7 @@ internal fun SettingsScreen(
                         onClick = {
                             val intent = android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://github.com/Mangi-11/Eta"),
+                                android.net.Uri.parse(AppUpdateChecker.REPO_URL),
                             )
                             context.startActivity(intent)
                         },
@@ -702,6 +758,40 @@ internal fun SettingsScreen(
                 }
             },
         )
+
+        if (updateDialogVisible) {
+            WindowDialog(
+                show = true,
+                title = if (updateDialogNewVersion.isNotBlank() && updateDownloadUrl.isNotBlank()) {
+                    stringResource(R.string.settings_update_available_title)
+                } else {
+                    stringResource(R.string.settings_check_update)
+                },
+                summary = updateDialogSummary,
+                onDismissRequest = { updateDialogVisible = false },
+            ) {
+                MiuixDialogActions(
+                    confirmText = if (updateDialogNewVersion.isNotBlank() && updateDownloadUrl.isNotBlank()) {
+                        stringResource(R.string.settings_update_download)
+                    } else {
+                        stringResource(R.string.ui_knew_cb63c6)
+                    },
+                    onCancel = { updateDialogVisible = false },
+                    onConfirm = {
+                        updateDialogVisible = false
+                        val targetUrl = updateDownloadUrl.ifBlank { AppUpdateChecker.REPO_URL }
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(targetUrl),
+                                ),
+                            )
+                        }
+                    },
+                )
+            }
+        }
 }
 
 // ── 系统化确认对话框 ─────────────────────────────────────────────────────────
