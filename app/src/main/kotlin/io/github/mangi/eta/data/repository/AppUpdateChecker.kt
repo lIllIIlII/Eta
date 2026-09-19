@@ -85,8 +85,8 @@ internal object AppUpdateChecker {
             return ReleaseInfo(
                 versionName = versionName,
                 downloadUrl = "$REPO_URL/releases/download/${tagPath(rawTag)}/$assetName",
-                releaseUrl = json.optString("html_url").ifBlank { "$REPO_URL/releases" },
-                notes = json.optString("body"),
+                releaseUrl = ((json.opt("html_url") as? String).orEmpty()).ifBlank { "$REPO_URL/releases" },
+                notes = (json.opt("body") as? String).orEmpty(),
             )
         }
         return null

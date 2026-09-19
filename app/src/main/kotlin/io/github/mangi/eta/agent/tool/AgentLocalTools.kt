@@ -743,7 +743,7 @@ internal class AgentLocalTools(
         if (!AgentProtectedPathPolicy.isUserBlocked(rawPath)) return null
         return errorResult(
             code = "USER_BLOCKED_PATH_DENIED",
-            message = "路径「$rawPath」已被用户在设置中禁止 AI 访问或修改，本次$action未执行。" +
+            message = "路径「${rawPath}」已被用户在设置中禁止 AI 访问或修改，本次${action}未执行。" +
                 "这是用户主动配置的限制，请勿重试或尝试绕过；如需操作请让用户先在设置中移除该路径。",
         )
     }

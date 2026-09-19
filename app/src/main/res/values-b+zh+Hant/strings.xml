@@ -1238,4 +1238,5 @@
     <string name="settings_update_mirror_summary">檢查更新與下載安裝包時先走 gh-proxy、ghproxy、ghfast 鏡像，失敗後仍會回退官方網域。</string>
     <string name="tool_approval_hint_manual">「AI 操控手機需手動允許」已開啟，本次操作必須由你確認。</string>
     <string name="settings_update_retry">重試下載</string>
+    <string name="chat_manual_control_blocks_auto_approve">已開啟「AI 操控手機需手動允許」，免確認開關不會生效；可先在設定中關閉。</string>
 </resources>

@@ -1,5 +1,6 @@
 package io.github.mangi.eta.ui.components
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -50,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.focus.FocusRequester
@@ -407,6 +409,7 @@ internal fun AgentChatInputBar(
 
 @Composable
 private fun AgentAutoApproveChip(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     var enabled by remember { mutableStateOf(Prefs.isEnabled(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS)) }
     val contentColor by animateColorAsState(
         targetValue = if (enabled) {
@@ -419,6 +422,13 @@ private fun AgentAutoApproveChip(modifier: Modifier = Modifier) {
     )
     IconButton(
         onClick = {
+            if (Prefs.isEnabled(Prefs.Keys.AGENT_MANUAL_DEVICE_CONTROL)) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.chat_manual_control_blocks_auto_approve),
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
             val next = !enabled
             enabled = next
             Prefs.localAgentPreferences()

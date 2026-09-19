@@ -1267,4 +1267,5 @@
     <string name="settings_update_mirror_summary">Update checks and APK downloads go through gh-proxy, ghproxy and ghfast first, then fall back to the official domain.</string>
     <string name="tool_approval_hint_manual">Manual approval for phone control is on, so you must confirm this action yourself.</string>
     <string name="settings_update_retry">Retry download</string>
+    <string name="chat_manual_control_blocks_auto_approve">Manual approval for phone control is on, so this toggle has no effect. You can turn it off in Settings.</string>
 </resources>
