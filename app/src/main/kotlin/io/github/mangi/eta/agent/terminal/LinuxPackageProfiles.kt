@@ -97,6 +97,63 @@ internal object LinuxPackageProfiles {
         ),
     )
 
+    val GIT = LinuxPackageProfile(
+        id = "git",
+        markerName = AlpineEnvironmentPaths.GIT_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.GIT_TOOLS_REVISION,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                packages = listOf("git", "git-lfs"),
+                setupScript = "git config --global --replace-all init.defaultBranch main || true",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                packages = listOf("git", "git-lfs"),
+                setupScript = "git config --global --replace-all init.defaultBranch main || true",
+            ),
+        ),
+    )
+    val DEV = LinuxPackageProfile(
+        id = "dev",
+        markerName = AlpineEnvironmentPaths.DEV_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.DEV_TOOLS_REVISION,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                packages = listOf("build-base", "gcc", "g++", "make", "cmake", "pkgconf", "rust", "cargo", "go", "sqlite", "sqlite-dev", "zlib-dev", "openssl-dev", "patch", "diffutils", "bison", "flex", "autoconf", "automake", "libtool"),
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                packages = listOf("build-essential", "cmake", "pkg-config", "golang-go", "sqlite3", "libsqlite3-dev", "zlib1g-dev", "libssl-dev", "patch", "diffutils", "bison", "flex", "autoconf", "automake", "libtool"),
+            ),
+        ),
+    )
+    val MEDIA = LinuxPackageProfile(
+        id = "media",
+        markerName = AlpineEnvironmentPaths.MEDIA_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.MEDIA_TOOLS_REVISION,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                packages = listOf("ffmpeg", "imagemagick"),
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                packages = listOf("ffmpeg", "imagemagick"),
+            ),
+        ),
+    )
+    val NETUTIL = LinuxPackageProfile(
+        id = "netutil",
+        markerName = AlpineEnvironmentPaths.NETUTIL_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.NETUTIL_TOOLS_REVISION,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                packages = listOf("curl", "wget", "jq", "ripgrep", "fd", "zip", "unzip", "tar", "gzip", "xz", "tmux", "htop", "tree", "nano", "vim", "rsync", "nmap", "tcpdump"),
+                setupScript = "command -v fd >/dev/null 2>&1 || ln -sf \$(command -v fdfind 2>/dev/null || echo /usr/bin/fd) /usr/local/bin/fd || true",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                packages = listOf("curl", "wget", "jq", "ripgrep", "fd-find", "zip", "unzip", "tar", "gzip", "xz-utils", "tmux", "htop", "tree", "nano", "vim", "rsync", "nmap"),
+                setupScript = "command -v fd >/dev/null 2>&1 || ln -sf \$(command -v fdfind 2>/dev/null || echo /usr/bin/fdfind) /usr/local/bin/fd || true",
+            ),
+        ),
+    )
+
     private const val KIMI_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
             "@moonshot-ai/kimi-code@latest || " +
@@ -112,7 +169,7 @@ internal object LinuxPackageProfiles {
             LinuxDistribution.DEBIAN to LinuxPackageSpec(setupScript = KIMI_INSTALL_SCRIPT),
         ),
     )
-    val ALL = listOf(PYTHON, NODE, SSH, KIMI)
+    val ALL = listOf(PYTHON, NODE, SSH, KIMI, GIT, DEV, MEDIA, NETUTIL)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

@@ -29,6 +29,66 @@
       "hasReferences": false,
       "hasAssets": false,
       "hasEvals": false
+    },
+    {
+      "id": "docx",
+      "name": "docx",
+      "description": "创建、读取、编辑 Word 文档（.docx）。当用户要求生成报告、公文、简历、合同、通知等 Word 文件，或需要从 .docx 中提取/修改内容时使用。",
+      "assetPath": "builtin_skills/docx",
+      "hasScripts": false,
+      "hasReferences": false,
+      "hasAssets": false,
+      "hasEvals": false
+    },
+    {
+      "id": "xlsx",
+      "name": "xlsx",
+      "description": "创建、读取、分析 Excel 表格（.xlsx/.csv）。当用户要求制作表格、汇总数据、公式计算、多表合并、数据透视或导出 Excel 文件时使用。",
+      "assetPath": "builtin_skills/xlsx",
+      "hasScripts": false,
+      "hasReferences": false,
+      "hasAssets": false,
+      "hasEvals": false
+    },
+    {
+      "id": "pptx",
+      "name": "pptx",
+      "description": "创建与修改 PowerPoint 演示文稿（.pptx）。当用户要求做 PPT、幻灯片、汇报演示、产品介绍或从大纲生成演示文稿时使用。",
+      "assetPath": "builtin_skills/pptx",
+      "hasScripts": false,
+      "hasReferences": false,
+      "hasAssets": false,
+      "hasEvals": false
+    },
+    {
+      "id": "pdf",
+      "name": "pdf",
+      "description": "生成、合并、拆分、提取 PDF 内容。当用户要求输出 PDF 报告、把图片/文档转成 PDF、合并拆分 PDF、提取文字或表格时使用。",
+      "assetPath": "builtin_skills/pdf",
+      "hasScripts": false,
+      "hasReferences": false,
+      "hasAssets": false,
+      "hasEvals": false
+    },
+    {
+      "id": "web-research",
+      "name": "web-research",
+      "description": "联网深度调研。当用户的问题需要最新信息、多方交叉验证、行业/竞品/技术方案调研，或要求输出调研报告时使用。",
+      "assetPath": "builtin_skills/web-research",
+      "hasScripts": false,
+      "hasReferences": false,
+      "hasAssets": false,
+      "hasEvals": false
+    },
+    {
+      "id": "data-analysis",
+      "name": "data-analysis",
+      "description": "数据分析与可视化。当用户提供数据文件（csv/xlsx/json/log）需要清洗、统计、建模结论或绘制图表时使用。",
+      "assetPath": "builtin_skills/data-analysis",
+      "hasScripts": false,
+      "hasReferences": false,
+      "hasAssets": false,
+      "hasEvals": false
     }
   ]
 }

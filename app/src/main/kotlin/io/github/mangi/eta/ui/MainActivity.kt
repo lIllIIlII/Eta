@@ -21,6 +21,7 @@ import io.github.mangi.eta.ui.app.AgentAppRoot
 import io.github.mangi.eta.ui.app.AgentAppTheme
 import io.github.mangi.eta.ui.app.PredictiveBackController
 import io.github.mangi.eta.ui.app.installStartupSplash
+import io.github.mangi.eta.ui.components.LaunchUpdateDialogHost
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -68,6 +69,7 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                     )
+                    LaunchUpdateDialogHost()
                 }
             }
             contentReady = true

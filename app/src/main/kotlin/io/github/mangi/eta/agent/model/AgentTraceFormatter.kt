@@ -60,16 +60,34 @@ internal class AgentTraceFormatter {
         }
 
     fun displayCommand(toolCall: AgentModelClient.ToolCall): String? =
-        if (toolCall.name == "terminal" || toolCall.name == "run_command") {
-            runCatching {
+        when (toolCall.name) {
+            "terminal", "run_command" -> runCatching {
                 JSONObject(toolCall.argumentsJson)
                     .optString("command")
                     .trim()
                     .takeIf { it.isNotBlank() && it.length <= MAX_DISPLAY_COMMAND_CHARS }
                     ?.redactDisplaySecrets()
             }.getOrNull()
-        } else {
-            null
+            "write_file" -> runCatching {
+                val arguments = JSONObject(toolCall.argumentsJson)
+                val path = arguments.optString("path").trim()
+                val content = arguments.optString("content")
+                if (path.isBlank() && content.isBlank()) return@runCatching null
+                val redactedContent = content.redactDisplaySecrets()
+                val trimmedContent = if (redactedContent.length > MAX_WRITE_CONTENT_DISPLAY_CHARS) {
+                    redactedContent.take(MAX_WRITE_CONTENT_DISPLAY_CHARS) + "\n…（已截断，共 " + content.length + " 字符）"
+                } else {
+                    redactedContent
+                }
+                buildString {
+                    if (path.isNotBlank()) {
+                        append(path)
+                        if (trimmedContent.isNotBlank()) append('\n')
+                    }
+                    append(trimmedContent)
+                }.takeIf { it.isNotBlank() }
+            }.getOrNull()
+            else -> null
         }
 
     private fun String.redactDisplaySecrets(): String =
@@ -498,7 +516,8 @@ internal class AgentTraceFormatter {
 
     private companion object {
         const val BROWSER_TOOL_NAME = "browser_use"
-        const val MAX_DISPLAY_COMMAND_CHARS = 4_000
+        const val MAX_DISPLAY_COMMAND_CHARS = 32_000
+        const val MAX_WRITE_CONTENT_DISPLAY_CHARS = 20_000
         const val MAX_QUERY_SUMMARY_CHARS = 30
         const val MAX_LISTED_APP_NAMES = 3
         const val MAX_TERMINAL_PREVIEW_LINES = 3

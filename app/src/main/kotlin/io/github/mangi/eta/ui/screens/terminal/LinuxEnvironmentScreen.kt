@@ -75,6 +75,10 @@ private enum class InstallTarget {
     NODE,
     SSH,
     KIMI,
+    GIT,
+    DEV,
+    MEDIA,
+    NETUTIL,
 }
 
 private data class PackageProfileUi(
@@ -117,6 +121,34 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_kimi_tools,
         summaryRes = R.string.linux_kimi_tools_summary,
         readyRes = R.string.linux_kimi_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.GIT,
+        profile = LinuxPackageProfiles.GIT,
+        titleRes = R.string.linux_git_tools,
+        summaryRes = R.string.linux_git_tools_summary,
+        readyRes = R.string.linux_git_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.DEV,
+        profile = LinuxPackageProfiles.DEV,
+        titleRes = R.string.linux_dev_tools,
+        summaryRes = R.string.linux_dev_tools_summary,
+        readyRes = R.string.linux_dev_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.MEDIA,
+        profile = LinuxPackageProfiles.MEDIA,
+        titleRes = R.string.linux_media_tools,
+        summaryRes = R.string.linux_media_tools_summary,
+        readyRes = R.string.linux_media_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.NETUTIL,
+        profile = LinuxPackageProfiles.NETUTIL,
+        titleRes = R.string.linux_netutil_tools,
+        summaryRes = R.string.linux_netutil_tools_summary,
+        readyRes = R.string.linux_netutil_tools_ready,
     ),
 )
 
