@@ -89,8 +89,13 @@ internal class VerifiedArtifactDownloader(
                     }
                 }
                 if (tooLarge) return@responseUse false
-                val actualSha256 = digest.digest().toHexString()
-                val accepted = bytesRead == artifact.sizeBytes && actualSha256 == artifact.sha256
+                val sizeAccepted = bytesRead == artifact.sizeBytes
+                val accepted = if (artifact.sha256.isBlank()) {
+                    // 无公开校验和的官方制品（如 dl.google.com NDK），仅校验大小（HTTPS 保证完整性）。
+                    sizeAccepted
+                } else {
+                    sizeAccepted && digest.digest().toHexString() == artifact.sha256
+                }
                 logger.info(
                     "Verified artifact action=download id=${artifact.id} attempt=$attempt " +
                         "outcome=${if (accepted) "succeeded" else "rejected"} bytes=$bytesRead",
@@ -111,6 +116,7 @@ internal class VerifiedArtifactDownloader(
 
     fun verify(artifact: VerifiedArtifact, file: File): Boolean {
         if (!file.isFile || file.length() != artifact.sizeBytes) return false
+        if (artifact.sha256.isBlank()) return true
         return runCatching {
             val digest = MessageDigest.getInstance("SHA-256")
             file.inputStream().buffered().use { input ->

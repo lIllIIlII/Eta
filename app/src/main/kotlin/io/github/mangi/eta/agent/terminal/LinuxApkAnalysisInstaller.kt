@@ -2,6 +2,7 @@ package io.github.mangi.eta.agent.terminal
 
 import android.content.Context
 import io.github.mangi.eta.core.AndroidAgentLogger
+import io.github.mangi.eta.core.GitHubMirrors
 import io.github.mangi.eta.core.safeLogType
 import java.io.File
 import java.util.zip.ZipInputStream
@@ -391,9 +392,7 @@ internal class LinuxApkAnalysisInstaller(
         internal const val MIN_AVAILABLE_BYTES = 768L * 1024L * 1024L
 
         private val installMutex = Mutex()
-        private val GITHUB_PROXY_PREFIXES = listOf(
-            "https://gh-proxy.com/",
-        )
+        private val GITHUB_PROXY_PREFIXES = GitHubMirrors.PREFIXES
 
         internal val JADX_ARTIFACT = githubReleaseArtifact(
             id = "jadx",

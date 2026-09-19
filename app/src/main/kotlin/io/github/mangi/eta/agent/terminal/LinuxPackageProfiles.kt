@@ -26,6 +26,8 @@ internal sealed interface PackageProfileInstallResult {
 
     data class DependencyMissing(val profileId: String) : PackageProfileInstallResult
     data object Installed : PackageProfileInstallResult
+    data class InsufficientSpace(val requiredBytes: Long, val availableBytes: Long) : PackageProfileInstallResult
+    data class UnsupportedAbi(val abi: String) : PackageProfileInstallResult
     data class Failed(val stage: PackageProfileInstallStage) : PackageProfileInstallResult
 }
 
@@ -169,7 +171,26 @@ internal object LinuxPackageProfiles {
             LinuxDistribution.DEBIAN to LinuxPackageSpec(setupScript = KIMI_INSTALL_SCRIPT),
         ),
     )
-    val ALL = listOf(PYTHON, NODE, SSH, KIMI, GIT, DEV, MEDIA, NETUTIL)
+
+    /** Android 打包工具链：aapt2/apksigner/zipalign/apktool/gradle 等（按发行版选择可用的包）。 */
+    val ANDROID_BUILD = LinuxPackageProfile(
+        id = "android-build",
+        markerName = AlpineEnvironmentPaths.ANDROID_BUILD_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.ANDROID_BUILD_TOOLS_REVISION,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                packages = listOf("openjdk21-jdk", "gradle", "android-tools"),
+                setupScript = "gradle --version >/dev/null 2>&1 || true",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                packages = listOf(
+                    "openjdk-21-jdk-headless", "aapt", "apksigner", "zipalign",
+                    "apktool", "adb",
+                ),
+            ),
+        ),
+    )
+    val ALL = listOf(PYTHON, NODE, SSH, KIMI, GIT, DEV, MEDIA, NETUTIL, ANDROID_BUILD)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

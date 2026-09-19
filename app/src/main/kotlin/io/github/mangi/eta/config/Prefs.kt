@@ -29,6 +29,9 @@ internal object Prefs {
         const val AGENT_DEVICE_SENSITIVE_ACTION_TOOLS = "agent_device_sensitive_action_tools"
         const val AGENT_THINKING_ENABLED = "agent_thinking_enabled"
         const val AGENT_AUTO_APPROVE_TOOLS = "agent_auto_approve_tools"
+        const val AGENT_PHONE_CONTROL_APPROVAL = "agent_phone_control_approval"
+        const val AGENT_BLOCK_FILE_ACCESS = "agent_block_file_access"
+        const val AGENT_BLOCKED_FILE_PATHS = "agent_blocked_file_paths"
         const val AGENT_RUNTIME_CONFIG_JSON = "agent_runtime_config_json"
 
         val BOOLEAN_DEFAULTS: Map<String, Boolean> = mapOf(
@@ -47,7 +50,9 @@ internal object Prefs {
             AGENT_DEVICE_SENSITIVE_READ_TOOLS to true,
             AGENT_DEVICE_SENSITIVE_ACTION_TOOLS to true,
             AGENT_THINKING_ENABLED to true,
-            AGENT_AUTO_APPROVE_TOOLS to false
+            AGENT_AUTO_APPROVE_TOOLS to false,
+            AGENT_PHONE_CONTROL_APPROVAL to true,
+            AGENT_BLOCK_FILE_ACCESS to false,
         )
 
         val LOCAL_AGENT_KEYS: Set<String> = setOf(
@@ -58,6 +63,8 @@ internal object Prefs {
             AGENT_DEVICE_SENSITIVE_ACTION_TOOLS,
             AGENT_THINKING_ENABLED,
             AGENT_AUTO_APPROVE_TOOLS,
+            AGENT_PHONE_CONTROL_APPROVAL,
+            AGENT_BLOCK_FILE_ACCESS,
         )
     }
 
@@ -98,6 +105,16 @@ internal object Prefs {
 
     fun getString(key: String): String {
         return remote?.getString(key, "") ?: ""
+    }
+
+    /** 读取本地 Agent 偏好中的字符串（仅 App 进程内使用，不经 Xposed 同步）。 */
+    fun localAgentString(key: String): String {
+        return localAgent?.getString(key, "") ?: ""
+    }
+
+    fun setLocalAgentString(key: String, value: String): Boolean {
+        val preferences = localAgent ?: return false
+        return runCatching { preferences.edit().putString(key, value).commit() }.getOrDefault(false)
     }
 
     fun powerAssistantTarget(): PowerAssistantTarget = powerAssistantTarget(remote)

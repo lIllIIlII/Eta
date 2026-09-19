@@ -2,6 +2,7 @@ package io.github.mangi.eta.data.repository
 
 import android.content.Context
 import android.content.pm.PackageManager
+import io.github.mangi.eta.core.GitHubMirrors
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -10,7 +11,7 @@ import org.json.JSONObject
 internal object AppUpdateChecker {
 
     const val REPO_URL = "https://github.com/lIllIIlII/Eta"
-    private const val RELEASES_URL = "https://api.github.com/repos/lIllIIlII/Eta/releases/latest"
+    private const val RELEASES_API_URL = "https://api.github.com/repos/lIllIIlII/Eta/releases/latest"
 
     data class ReleaseInfo(
         val versionName: String,
@@ -22,6 +23,7 @@ internal object AppUpdateChecker {
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
         .build()
 
     fun currentVersion(context: Context): String = runCatching {
@@ -30,8 +32,17 @@ internal object AppUpdateChecker {
     }.getOrDefault("")
 
     fun latestRelease(): ReleaseInfo? {
+        // 直连优先，失败后依次尝试国内镜像代理（gh-proxy 系列同样支持 api.github.com 转发）。
+        for (url in GitHubMirrors.candidates(RELEASES_API_URL)) {
+            val release = runCatching { fetchRelease(url) }.getOrNull()
+            if (release != null) return release
+        }
+        return null
+    }
+
+    private fun fetchRelease(apiUrl: String): ReleaseInfo? {
         val request = Request.Builder()
-            .url(RELEASES_URL)
+            .url(apiUrl)
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", "Eta-Update-Check")
             .get()

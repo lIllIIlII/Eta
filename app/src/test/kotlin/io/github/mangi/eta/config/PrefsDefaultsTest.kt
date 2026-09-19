@@ -24,6 +24,9 @@ class PrefsDefaultsTest {
                 Prefs.Keys.AGENT_DEVICE_SENSITIVE_READ_TOOLS to true,
                 Prefs.Keys.AGENT_DEVICE_SENSITIVE_ACTION_TOOLS to true,
                 Prefs.Keys.AGENT_THINKING_ENABLED to true,
+                Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS to false,
+                Prefs.Keys.AGENT_PHONE_CONTROL_APPROVAL to true,
+                Prefs.Keys.AGENT_BLOCK_FILE_ACCESS to false,
             ),
             Prefs.Keys.BOOLEAN_DEFAULTS,
         )
@@ -42,6 +45,9 @@ class PrefsDefaultsTest {
                 Prefs.Keys.AGENT_DEVICE_SENSITIVE_READ_TOOLS,
                 Prefs.Keys.AGENT_DEVICE_SENSITIVE_ACTION_TOOLS,
                 Prefs.Keys.AGENT_THINKING_ENABLED,
+                Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS,
+                Prefs.Keys.AGENT_PHONE_CONTROL_APPROVAL,
+                Prefs.Keys.AGENT_BLOCK_FILE_ACCESS,
             ),
             Prefs.Keys.LOCAL_AGENT_KEYS,
         )

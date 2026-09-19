@@ -15,6 +15,8 @@ internal object AlpineEnvironmentPaths {
     const val DEV_TOOLS_MARKER = ".eta-dev-tools-ready"
     const val MEDIA_TOOLS_MARKER = ".eta-media-tools-ready"
     const val NETUTIL_TOOLS_MARKER = ".eta-netutil-tools-ready"
+    const val ANDROID_BUILD_TOOLS_MARKER = ".eta-android-build-tools-ready"
+    const val ANDROID_NDK_MARKER = ".eta-android-ndk-ready"
     const val TOOLSET_REVISION = 1
     const val APK_ANALYSIS_REVISION = 1
     const val PYTHON_TOOLS_REVISION = 1
@@ -26,6 +28,8 @@ internal object AlpineEnvironmentPaths {
     const val DEV_TOOLS_REVISION = 1
     const val MEDIA_TOOLS_REVISION = 1
     const val NETUTIL_TOOLS_REVISION = 1
+    const val ANDROID_BUILD_TOOLS_REVISION = 1
+    const val ANDROID_NDK_REVISION = 1
 
     fun environmentDir(context: Context): File =
         LinuxEnvironmentPaths.environmentDir(context, LinuxDistribution.ALPINE)

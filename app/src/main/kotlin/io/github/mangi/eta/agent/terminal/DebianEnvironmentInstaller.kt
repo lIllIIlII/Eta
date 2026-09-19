@@ -3,6 +3,7 @@ package io.github.mangi.eta.agent.terminal
 import android.content.Context
 import android.os.Build
 import io.github.mangi.eta.core.AndroidAgentLogger
+import io.github.mangi.eta.core.GitHubMirrors
 import java.io.File
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Dispatchers
@@ -384,8 +385,6 @@ internal class DebianEnvironmentInstaller(
             )
         }
 
-        private val GITHUB_PROXY_PREFIXES = listOf(
-            "https://gh-proxy.com/",
-        )
+        private val GITHUB_PROXY_PREFIXES = GitHubMirrors.PREFIXES
     }
 }

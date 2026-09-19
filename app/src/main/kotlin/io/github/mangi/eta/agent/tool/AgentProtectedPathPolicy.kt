@@ -29,6 +29,22 @@ internal object AgentProtectedPathPolicy {
 
     private val REDIRECT_PATTERN = Regex("(>+|>>+)\\s*(\\S+)")
 
+    /** 解析用户配置的禁访路径列表：支持换行/逗号/分号分隔，忽略空项与注释。 */
+    fun parseUserBlockedPaths(raw: String): List<String> = raw
+        .split('\n', ',', ';', '，', '；')
+        .map { it.trim().trim('"', '\'') }
+        .filter { candidate -> candidate.startsWith("/") }
+        .mapNotNull { candidate -> normalize(candidate) }
+        .filter { it != "/" }
+        .distinct()
+
+    fun isUserBlocked(normalizedPath: String, userBlockedPaths: List<String>): Boolean {
+        if (normalizedPath == "/") return false
+        return userBlockedPaths.any { blocked ->
+            normalizedPath == blocked || normalizedPath.startsWith("$blocked/")
+        }
+    }
+
     fun isProtected(rawPath: String): Boolean {
         val normalized = normalize(rawPath) ?: return false
         if (normalized == "/") return false
@@ -37,20 +53,53 @@ internal object AgentProtectedPathPolicy {
         }
     }
 
-    fun violationForWrite(rawPath: String): String? {
+    fun violationForWrite(rawPath: String, userBlockedPaths: List<String> = emptyList()): String? {
         val normalized = normalize(rawPath) ?: return null
-        return if (isProtected(normalized)) {
-            "PROTECTED_PATH_WRITE_DENIED:$normalized"
+        return when {
+            isProtected(normalized) -> "PROTECTED_PATH_WRITE_DENIED:$normalized"
+            isUserBlocked(normalized, userBlockedPaths) -> "BLOCKED_PATH_ACCESS_DENIED:$normalized"
+            else -> null
+        }
+    }
+
+    /** 用户禁访路径同样禁止读取与列目录。 */
+    fun violationForRead(rawPath: String, userBlockedPaths: List<String> = emptyList()): String? {
+        if (userBlockedPaths.isEmpty()) return null
+        val normalized = normalize(rawPath) ?: return null
+        return if (isUserBlocked(normalized, userBlockedPaths)) {
+            "BLOCKED_PATH_ACCESS_DENIED:$normalized"
         } else {
             null
         }
     }
 
-    fun violationForCommand(rawCommand: String): String? {
+    fun violationForCommand(
+        rawCommand: String,
+        userBlockedPaths: List<String> = emptyList(),
+    ): String? {
         val command = rawCommand.trim()
         if (command.isEmpty()) return null
         val tokens = tokenize(command)
         if (tokens.isEmpty()) return null
+
+        // 用户禁访路径：读取或写入都拒绝，因此只要命令中出现对应路径即拦截。
+        if (userBlockedPaths.isNotEmpty()) {
+            tokens.forEachIndexed { _, token ->
+                if (looksLikePath(token)) {
+                    val normalized = normalize(token)
+                    if (normalized != null && isUserBlocked(normalized, userBlockedPaths)) {
+                        return "BLOCKED_PATH_ACCESS_DENIED:$normalized"
+                    }
+                }
+            }
+            REDIRECT_PATTERN.findAll(command).forEach { match ->
+                val target = match.groupValues[2].trim('"', '\'', ' ')
+                val normalized = normalize(target)
+                if (normalized != null && isUserBlocked(normalized, userBlockedPaths)) {
+                    return "BLOCKED_PATH_ACCESS_DENIED:$normalized"
+                }
+            }
+        }
 
         val protectedIndexes = tokens
             .withIndex()

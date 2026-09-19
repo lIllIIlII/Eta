@@ -71,6 +71,7 @@ private enum class InstallTarget {
     BASE,
     TOOLS,
     APK_ANALYSIS,
+    ANDROID_NDK,
     PYTHON,
     NODE,
     SSH,
@@ -79,6 +80,7 @@ private enum class InstallTarget {
     DEV,
     MEDIA,
     NETUTIL,
+    ANDROID_BUILD,
 }
 
 private data class PackageProfileUi(
@@ -150,6 +152,13 @@ private val packageProfileUis = listOf(
         summaryRes = R.string.linux_netutil_tools_summary,
         readyRes = R.string.linux_netutil_tools_ready,
     ),
+    PackageProfileUi(
+        target = InstallTarget.ANDROID_BUILD,
+        profile = LinuxPackageProfiles.ANDROID_BUILD,
+        titleRes = R.string.linux_android_build_tools,
+        summaryRes = R.string.linux_android_build_tools_summary,
+        readyRes = R.string.linux_android_build_tools_ready,
+    ),
 )
 
 @Composable
@@ -180,6 +189,9 @@ internal fun LinuxEnvironmentScreen(
     val apkAnalysisInstaller = remember(appContext, selectedDistribution, backend) {
         LinuxApkAnalysisInstaller(appContext, selectedDistribution)
     }
+    val androidNdkInstaller = remember(appContext, selectedDistribution, backend) {
+        AndroidNdkInstaller(appContext, selectedDistribution)
+    }
     val profileInstallers = remember(appContext, selectedDistribution, backend) {
         packageProfileUis.associate { profileUi ->
             profileUi.target to LinuxPackageProfileInstaller(
@@ -203,6 +215,9 @@ internal fun LinuxEnvironmentScreen(
         mutableStateOf(apkAnalysisInstaller.isReady())
     }
     var apkAnalysisProgress by remember { mutableStateOf<ApkAnalysisInstallProgress?>(null) }
+    var androidNdkReady by remember(selectedDistribution, backend) {
+        mutableStateOf(androidNdkInstaller.isReady())
+    }
     var kimiWebLaunching by remember { mutableStateOf(false) }
     var kimiWebRunning by remember(selectedDistribution, backend) { mutableStateOf(false) }
     val kimiWebLauncher = remember(appContext) {
@@ -301,6 +316,7 @@ internal fun LinuxEnvironmentScreen(
                 it.target to profileInstallers.getValue(it.target).isReady()
             }
             apkAnalysisReady = apkAnalysisInstaller.isReady()
+            androidNdkReady = androidNdkInstaller.isReady()
             progress = null
             debianProgress = null
             busyTarget = null
@@ -516,6 +532,44 @@ internal fun LinuxEnvironmentScreen(
                     }
                     HorizontalDivider()
                     BasicComponent(
+                        title = stringResource(R.string.linux_android_ndk_tools),
+                        summary = if (busyTarget == InstallTarget.ANDROID_NDK) {
+                            profileProgressSummary ?: stringResource(R.string.linux_android_ndk_tools_summary)
+                        } else if (androidNdkReady) {
+                            stringResource(R.string.linux_android_ndk_tools_ready)
+                        } else {
+                            stringResource(R.string.linux_android_ndk_tools_summary)
+                        },
+                        endActions = {
+                            TextButton(
+                                text = when {
+                                    androidNdkReady -> stringResource(R.string.linux_installed)
+                                    busyTarget == InstallTarget.ANDROID_NDK -> stringResource(R.string.linux_installing)
+                                    else -> stringResource(R.string.linux_install)
+                                },
+                                enabled = busyTarget == null && !requiresRoot && !androidNdkReady,
+                                onClick = {
+                                    if (busyTarget != null || androidNdkReady) return@TextButton
+                                    busyTarget = InstallTarget.ANDROID_NDK
+                                    resultMessage = null
+                                    val ndkTitle = context.getString(R.string.linux_android_ndk_tools)
+                                    launchInstallation {
+                                        val result = androidNdkInstaller.install { update ->
+                                            withContext(Dispatchers.Main.immediate) {
+                                                profileProgressSummary = update.summary(context, ndkTitle)
+                                            }
+                                        }
+                                        androidNdkReady = androidNdkInstaller.isReady()
+                                        profileProgressSummary = null
+                                        busyTarget = null
+                                        resultMessage = result.toMessage(context, ndkTitle)
+                                    }
+                                },
+                            )
+                        },
+                    )
+                    HorizontalDivider()
+                    BasicComponent(
                         title = stringResource(R.string.ui_apk_analysis_95ad17),
                         summary = apkAnalysisProgress?.summary(context) ?: if (apkAnalysisReady) {
                             context.getString(R.string.linux_apk_tools_ready)
@@ -646,6 +700,14 @@ private fun PackageProfileInstallResult.toMessage(
     }
     PackageProfileInstallResult.Installed ->
         context.getString(R.string.linux_profile_installed, profileTitle)
+    is PackageProfileInstallResult.InsufficientSpace ->
+        context.getString(
+            R.string.linux_insufficient_space,
+            requiredBytes.toReadableSize(context),
+            availableBytes.toReadableSize(context),
+        )
+    is PackageProfileInstallResult.UnsupportedAbi ->
+        context.getString(R.string.linux_unsupported_abi, abi)
     is PackageProfileInstallResult.Failed -> context.getString(
         R.string.linux_profile_stage_failed,
         PackageProfileInstallProgress(stage).summary(context, profileTitle),

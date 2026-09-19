@@ -43,6 +43,13 @@ private val USER_APPROVAL_TOOL_NAMES = setOf(
     "set_setting", "set_device_state", "app_state_control",
 )
 
+/** 操控手机本体（触屏、输入、打开应用等）的工具；可在设置中要求每次手动确认。 */
+private val PHONE_CONTROL_APPROVAL_TOOL_NAMES = USER_APPROVAL_TOOL_NAMES + setOf(
+    "tap", "tap_area", "tap_element", "long_press", "long_press_element",
+    "swipe", "scroll", "scroll_element",
+    "input_text", "replace_text", "clear_text", "set_clipboard", "paste_text",
+)
+
 internal class AgentRuntimeRunExecutor(
     context: Context,
     private val currentPermissions: () -> AgentRuntimePolicy.Permissions,
@@ -204,9 +211,8 @@ internal class AgentRuntimeRunExecutor(
                     }
                     if (baseDecision !is ToolExecutionDecision.Allow) {
                         baseDecision
-                    } else if (
-                        toolName in USER_APPROVAL_TOOL_NAMES &&
-                        !Prefs.isEnabled(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS)
+                    } else if (toolName in PHONE_CONTROL_APPROVAL_TOOL_NAMES &&
+                        requiresManualApproval(toolName)
                     ) {
                         val approved = runBlocking {
                             AgentToolApprovalGate.await(
@@ -432,6 +438,14 @@ internal class AgentRuntimeRunExecutor(
                     "Agent runtime event projection failed: type=${throwable.safeLogType()}"
                 }
             }
+    }
+
+    private fun requiresManualApproval(toolName: String): Boolean {
+        // 「AI 操控手机需手动确认」开关开启时，所有操控手机的工具（含打开应用、触屏、输入）
+        // 每次都必须弹窗确认；关闭时保持旧行为：仅敏感动作类需要确认，且可被自动放行开关豁免。
+        if (Prefs.isEnabled(Prefs.Keys.AGENT_PHONE_CONTROL_APPROVAL)) return true
+        return toolName in USER_APPROVAL_TOOL_NAMES &&
+            !Prefs.isEnabled(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS)
     }
 
     private fun summarizeToolArguments(toolName: String, args: org.json.JSONObject): String {

@@ -27,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,8 +49,8 @@ import androidx.compose.ui.window.DialogProperties
 import io.github.mangi.eta.R
 import io.github.mangi.eta.data.repository.ApkUpdateInstaller
 import io.github.mangi.eta.data.repository.AppUpdateChecker
-import io.github.mangi.eta.data.repository.HotUpdateRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,7 +69,9 @@ internal fun LaunchUpdateDialogHost() {
     var info by remember { mutableStateOf<LaunchUpdateInfo?>(null) }
     var checkedOnce by rememberSaveable { mutableStateOf(false) }
     var downloading by remember { mutableStateOf(false) }
-    var progress by remember { mutableIntStateOf(0) }
+    var downloadBytes by remember { mutableStateOf(0L) }
+    var downloadTotalBytes by remember { mutableStateOf(0L) }
+    var downloadJob by remember { mutableStateOf<Job?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -88,18 +89,6 @@ internal fun LaunchUpdateDialogHost() {
                         AppUpdateChecker.isNewer(it.versionName, currentVersion)
                 }
                 ?.let { LaunchUpdateInfo(it.versionName, it.notes, it.downloadUrl) }
-                ?: run {
-                    val config = HotUpdateRepository.cached(context)
-                    HotUpdateRepository.pendingApkUpdate(context, config)
-                        ?.takeIf { it.apkUrl.isNotBlank() }
-                        ?.let {
-                            LaunchUpdateInfo(
-                                versionName = it.apkVersionName.ifBlank { it.apkVersionCode.toString() },
-                                notes = it.apkNotes,
-                                downloadUrl = it.apkUrl,
-                            )
-                        }
-                }
             if (candidate != null) info = candidate
         }
     }
@@ -108,22 +97,15 @@ internal fun LaunchUpdateDialogHost() {
         LaunchUpdateDialog(
             info = current,
             downloading = downloading,
-            progress = progress,
-            onDismiss = { if (!downloading) info = null },
-            onHotUpdate = {
-                coroutineScope.launch {
-                    val outcome = runCatching {
-                        HotUpdateRepository.refreshSuspend(context)
-                    }.getOrNull()
-                    val applied = outcome?.applied == true
-                    val messageRes = if (applied) {
-                        R.string.update_launch_hotupdate_done
-                    } else {
-                        R.string.update_launch_hotupdate_failed
-                    }
-                    Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
-                    if (applied) info = null
+            downloadedBytes = downloadBytes,
+            totalBytes = downloadTotalBytes,
+            onDismiss = {
+                if (downloading) {
+                    downloadJob?.cancel()
+                    downloadJob = null
+                    downloading = false
                 }
+                info = null
             },
             onUpdate = {
                 if (downloading) return@LaunchUpdateDialog
@@ -137,28 +119,55 @@ internal fun LaunchUpdateDialogHost() {
                     return@LaunchUpdateDialog
                 }
                 downloading = true
-                progress = 0
-                coroutineScope.launch {
-                    val downloaded = runCatching {
-                        ApkUpdateInstaller.download(context, current.downloadUrl) { value ->
-                            progress = value
+                downloadBytes = 0
+                downloadTotalBytes = 0
+                downloadJob = coroutineScope.launch {
+                    var cancelled = false
+                    val downloaded = try {
+                        runCatching {
+                            ApkUpdateInstaller.download(context, current.downloadUrl) { bytes, total ->
+                                downloadBytes = bytes
+                                downloadTotalBytes = total
+                            }
+                        }.getOrElse { throwable ->
+                            if (throwable is kotlinx.coroutines.CancellationException) {
+                                cancelled = true
+                            }
+                            null
                         }
-                    }.getOrNull()
+                    } catch (throwable: Throwable) {
+                        if (throwable is kotlinx.coroutines.CancellationException) cancelled = true
+                        null
+                    }
                     downloading = false
-                    if (downloaded != null) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.settings_update_downloaded),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                        runCatching { ApkUpdateInstaller.install(context, downloaded) }
-                        info = null
-                    } else {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.settings_update_download_failed),
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                    downloadJob = null
+                    when {
+                        downloaded != null -> {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.settings_update_downloaded),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            val installError = runCatching {
+                                ApkUpdateInstaller.install(context, downloaded)
+                            }.exceptionOrNull()
+                            if (installError != null) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.settings_update_install_failed),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                            info = null
+                        }
+                        cancelled -> Unit
+                        else -> {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.settings_update_download_failed),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
                     }
                 }
             },
@@ -170,9 +179,9 @@ internal fun LaunchUpdateDialogHost() {
 private fun LaunchUpdateDialog(
     info: LaunchUpdateInfo,
     downloading: Boolean,
-    progress: Int,
+    downloadedBytes: Long,
+    totalBytes: Long,
     onDismiss: () -> Unit,
-    onHotUpdate: () -> Unit,
     onUpdate: () -> Unit,
 ) {
     Dialog(
@@ -201,6 +210,11 @@ private fun LaunchUpdateDialog(
         val colorScheme = MiuixTheme.colorScheme
         val dark = isDarkTheme()
         val glassShape = RoundedCornerShape(30.dp)
+        val progressFraction = if (totalBytes > 0) {
+            (downloadedBytes.toFloat() / totalBytes).coerceIn(0f, 1f)
+        } else {
+            null
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -328,15 +342,31 @@ private fun LaunchUpdateDialog(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth(progress.coerceIn(0, 100) / 100f)
+                                    .fillMaxWidth(progressFraction ?: 1f)
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp))
-                                    .background(colorScheme.primary),
+                                    .background(
+                                        if (progressFraction != null) {
+                                            colorScheme.primary
+                                        } else {
+                                            colorScheme.primary.copy(alpha = 0.5f)
+                                        },
+                                    ),
                             )
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = stringResource(R.string.settings_update_downloading, progress),
+                            text = if (totalBytes > 0) {
+                                stringResource(
+                                    R.string.settings_update_downloading,
+                                    ((downloadedBytes * 100L) / totalBytes).coerceIn(0L, 100L).toInt(),
+                                )
+                            } else {
+                                stringResource(
+                                    R.string.settings_update_downloading_bytes,
+                                    formatReadableBytes(downloadedBytes),
+                                )
+                            },
                             color = colorScheme.onSurfaceVariantSummary,
                             fontSize = 12.sp,
                             modifier = Modifier.fillMaxWidth(),
@@ -348,15 +378,13 @@ private fun LaunchUpdateDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         GlassActionButton(
-                            text = stringResource(R.string.update_launch_later),
-                            enabled = !downloading,
+                            text = if (downloading) {
+                                stringResource(R.string.update_launch_cancel_download)
+                            } else {
+                                stringResource(R.string.update_launch_later)
+                            },
+                            enabled = true,
                             onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                        )
-                        GlassActionButton(
-                            text = stringResource(R.string.update_launch_hotupdate),
-                            enabled = !downloading,
-                            onClick = onHotUpdate,
                             modifier = Modifier.weight(1f),
                         )
                         GlassActionButton(
@@ -365,8 +393,8 @@ private fun LaunchUpdateDialog(
                             } else {
                                 stringResource(R.string.settings_update_download)
                             },
-                            enabled = true,
-                            primary = true,
+                            enabled = !downloading,
+                            primary = !downloading,
                             filled = downloading,
                             onClick = onUpdate,
                             modifier = Modifier.weight(1f),
@@ -376,6 +404,13 @@ private fun LaunchUpdateDialog(
             }
         }
     }
+}
+
+internal fun formatReadableBytes(bytes: Long): String = when {
+    bytes >= 1L shl 30 -> "%.2f GB".format(bytes / (1L shl 30).toFloat())
+    bytes >= 1L shl 20 -> "%.1f MB".format(bytes / (1L shl 20).toFloat())
+    bytes >= 1L shl 10 -> "%.0f KB".format(bytes / (1L shl 10).toFloat())
+    else -> "$bytes B"
 }
 
 @Composable

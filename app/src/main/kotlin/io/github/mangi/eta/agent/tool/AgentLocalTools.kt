@@ -203,7 +203,11 @@ internal class AgentLocalTools(
                 "run_command" -> textResult(terminalTool { runCommand(args) })
                 "read_file" -> textResult(terminalTool { readFile(args) })
                 "write_file" -> textResult(terminalTool {
-                    AgentProtectedPathPolicy.violationForWrite(args.optString("path"))?.let { violation ->
+                    val blockedPaths = userBlockedPaths()
+                    AgentProtectedPathPolicy.violationForWrite(args.optString("path"), blockedPaths)?.let { violation ->
+                        if (violation.startsWith("BLOCKED_PATH_ACCESS_DENIED")) {
+                            return@terminalTool blockedPathError(violation)
+                        }
                         return@terminalTool errorResult(
                             code = "PROTECTED_PATH_WRITE_DENIED",
                             message = "$violation 属于受保护的系统路径，已禁止写入或修改。请勿尝试绕过此限制。",
@@ -685,8 +689,23 @@ internal class AgentLocalTools(
             .toString()
     }
 
+    private fun userBlockedPaths(): List<String> {
+        if (!Prefs.isEnabled(Prefs.Keys.AGENT_BLOCK_FILE_ACCESS)) return emptyList()
+        return AgentProtectedPathPolicy.parseUserBlockedPaths(
+            Prefs.localAgentString(Prefs.Keys.AGENT_BLOCKED_FILE_PATHS),
+        )
+    }
+
+    private fun blockedPathError(violation: String): String =
+        errorResult(
+            code = "BLOCKED_PATH_ACCESS_DENIED",
+            message = "$violation 是用户设置为禁止 AI 访问的路径，已拦截本次读取与修改请求。请勿尝试绕过此限制。",
+        )
+
     private fun runCommand(args: JSONObject): String {
-        AgentProtectedPathPolicy.violationForCommand(args.optString("command"))?.let { violation ->
+        val blockedPaths = userBlockedPaths()
+        AgentProtectedPathPolicy.violationForCommand(args.optString("command"), blockedPaths)?.let { violation ->
+            if (violation.startsWith("BLOCKED_PATH_ACCESS_DENIED")) return blockedPathError(violation)
             return errorResult(
                 code = "PROTECTED_PATH_WRITE_DENIED",
                 message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
@@ -702,7 +721,9 @@ internal class AgentLocalTools(
     private fun terminal(args: JSONObject): String {
         val action = args.optString("action", "open_and_exec")
         if (action == "open_and_exec" || action == "exec") {
-            AgentProtectedPathPolicy.violationForCommand(args.optString("command"))?.let { violation ->
+            val blockedPaths = userBlockedPaths()
+            AgentProtectedPathPolicy.violationForCommand(args.optString("command"), blockedPaths)?.let { violation ->
+                if (violation.startsWith("BLOCKED_PATH_ACCESS_DENIED")) return blockedPathError(violation)
                 return errorResult(
                     code = "PROTECTED_PATH_WRITE_DENIED",
                     message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
@@ -727,26 +748,38 @@ internal class AgentLocalTools(
         )
     }
 
-    private fun readFile(args: JSONObject): String =
-        terminalController.readFile(
+    private fun readFile(args: JSONObject): String {
+        AgentProtectedPathPolicy.violationForRead(args.optString("path"), userBlockedPaths())?.let { violation ->
+            return blockedPathError(violation)
+        }
+        return terminalController.readFile(
             path = args.optString("path"),
             offsetBytes = args.optInt("offset_bytes", 0),
             maxBytes = args.optInt("max_bytes", 65_536)
         )
+    }
 
-    private fun writeFile(args: JSONObject): String =
-        terminalController.writeFile(
+    private fun writeFile(args: JSONObject): String {
+        AgentProtectedPathPolicy.violationForRead(args.optString("path"), userBlockedPaths())?.let { violation ->
+            return blockedPathError(violation)
+        }
+        return terminalController.writeFile(
             path = args.optString("path"),
             content = args.optString("content"),
             append = args.optBoolean("append", false)
         )
+    }
 
-    private fun listDirectory(args: JSONObject): String =
-        terminalController.listDirectory(
+    private fun listDirectory(args: JSONObject): String {
+        AgentProtectedPathPolicy.violationForRead(args.optString("path"), userBlockedPaths())?.let { violation ->
+            return blockedPathError(violation)
+        }
+        return terminalController.listDirectory(
             path = args.optString("path"),
             showHidden = args.optBoolean("show_hidden", false),
             limit = args.optInt("limit", 80)
         )
+    }
 
     private fun findAppByPackage(packageName: String): AppInfo? =
         installedLauncherApps().firstOrNull { it.packageName == packageName }
