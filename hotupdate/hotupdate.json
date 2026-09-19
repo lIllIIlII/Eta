@@ -1,12 +1,12 @@
 {
-  "version": 1,
-  "notice": "",
+  "version": 2,
+  "notice": "Eta v3.1.2 已发布：命令长度拓宽、工具调用内容可查看、新增 Linux 工具与内置 Skills、启动更新检测与液态玻璃弹窗",
   "systemPromptPrefix": "",
   "flags": {},
   "apk": {
-    "versionCode": 0,
-    "versionName": "",
-    "url": "",
-    "notes": ""
+    "versionCode": 2026091901,
+    "versionName": "3.1.2",
+    "url": "https://github.com/lIllIIlII/Eta/releases/download/v3.1.2/Eta-v3.1.2.apk",
+    "notes": "主要更新\n- 命令长度大幅拓宽：Linux 终端 64K、Root 终端 32K，超长脚本与 heredoc 不再被截断\n- 工具调用内容可查看：python 脚本与终端命令完整展示，写入文件显示目标路径与源码内容\n- Linux 环境新增 4 组工具：Git、编译工具链、多媒体处理、命令行工具集\n- 内置 Skills 新增 6 个：docx、xlsx、pptx、pdf、web-research、data-analysis\n- 启动自动检测新版本，应用内直接下载安装或一键热更新"
   }
 }
