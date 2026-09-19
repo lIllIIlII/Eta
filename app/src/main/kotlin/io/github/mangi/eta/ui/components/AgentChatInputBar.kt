@@ -40,6 +40,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +71,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mangi.eta.R
+import io.github.mangi.eta.config.Prefs
 import io.github.mangi.eta.data.model.ReasoningEffort
 import io.github.mangi.eta.ui.model.AgentContextUsageUi
 import io.github.mangi.eta.ui.model.AgentModelPickerUiState
@@ -307,6 +309,10 @@ internal fun AgentChatInputBar(
                                     onEffortChange = onReasoningEffortChange,
                                 )
                             }
+
+                            Spacer(modifier = Modifier.width(2.dp))
+
+                            AgentAutoApproveChip()
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
@@ -397,6 +403,40 @@ internal fun AgentChatInputBar(
         }
     }
 
+}
+
+@Composable
+private fun AgentAutoApproveChip(modifier: Modifier = Modifier) {
+    var enabled by remember { mutableStateOf(Prefs.isEnabled(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS)) }
+    val contentColor by animateColorAsState(
+        targetValue = if (enabled) {
+            MiuixTheme.colorScheme.primary
+        } else {
+            MiuixTheme.colorScheme.onSurfaceVariantSummary
+        },
+        animationSpec = tween(durationMillis = 160),
+        label = "auto_approve_content",
+    )
+    IconButton(
+        onClick = {
+            val next = !enabled
+            enabled = next
+            Prefs.localAgentPreferences()
+                ?.edit()
+                ?.putBoolean(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS, next)
+                ?.apply()
+        },
+        minWidth = ChatInputActionSize,
+        minHeight = ChatInputActionSize,
+        modifier = modifier,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.VerifiedUser,
+            contentDescription = stringResource(R.string.chat_auto_approve_toggle),
+            modifier = Modifier.size(ChatInputActionIconSize - 3.dp),
+            tint = contentColor,
+        )
+    }
 }
 
 @Composable

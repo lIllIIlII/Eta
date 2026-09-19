@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -15,27 +16,34 @@ import androidx.compose.runtime.setValue
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mangi.eta.agent.voice.EtaAssistantOverlayService
+import io.github.mangi.eta.data.model.AppearanceSettings
 import io.github.mangi.eta.data.model.AppearanceThemeMode
 import io.github.mangi.eta.data.repository.AppearanceSettingsRepository
 import io.github.mangi.eta.ui.app.AgentAppRoot
 import io.github.mangi.eta.ui.app.AgentAppTheme
 import io.github.mangi.eta.ui.app.PredictiveBackController
+import io.github.mangi.eta.ui.app.StartupBrandingOverlay
 import io.github.mangi.eta.ui.app.installStartupSplash
+import io.github.mangi.eta.ui.components.AgentToolApprovalDialogHost
 import io.github.mangi.eta.ui.components.LaunchUpdateDialogHost
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MainActivity : ComponentActivity() {
     private var assistantConversationKey by mutableStateOf<String?>(null)
     private var appliedPredictiveBackEnabled = true
+    private var splashContentReady by mutableStateOf(false)
+    private var brandingOverlayVisible by mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        var contentReady = false
-        installStartupSplash { contentReady }
+        installStartupSplash { splashContentReady }
         enableEdgeToEdge()
         updateAssistantHandoff(intent)
         lifecycleScope.launch {
-            val initialAppearance = AppearanceSettingsRepository.settings()
+            val initialAppearance = withTimeoutOrNull(2_500) {
+                AppearanceSettingsRepository.settings()
+            } ?: AppearanceSettings()
             appliedPredictiveBackEnabled = initialAppearance.predictiveBackEnabled
             setContent {
                 val appearance by AppearanceSettingsRepository.settingsFlow()
@@ -60,19 +68,28 @@ class MainActivity : ComponentActivity() {
                     applyInterfaceScale = true,
                     onResolvedDarkModeChange = ::updateSystemBars,
                 ) {
-                    AgentAppRoot(
-                        assistantConversationKey = assistantConversationKey,
-                        onAssistantConversationOpened = { opened ->
-                            assistantConversationKey = null
-                            if (opened) {
-                                EtaAssistantOverlayService.notifyHandoffReady(this@MainActivity)
-                            }
-                        },
-                    )
-                    LaunchUpdateDialogHost()
+                    Box {
+                        AgentAppRoot(
+                            assistantConversationKey = assistantConversationKey,
+                            onAssistantConversationOpened = { opened ->
+                                assistantConversationKey = null
+                                if (opened) {
+                                    EtaAssistantOverlayService.notifyHandoffReady(this@MainActivity)
+                                }
+                            },
+                        )
+                        LaunchUpdateDialogHost()
+                        AgentToolApprovalDialogHost()
+                        if (brandingOverlayVisible) {
+                            StartupBrandingOverlay(
+                                contentReady = splashContentReady,
+                                onDismissed = { brandingOverlayVisible = false },
+                            )
+                        }
+                    }
                 }
             }
-            contentReady = true
+            splashContentReady = true
         }
     }
 

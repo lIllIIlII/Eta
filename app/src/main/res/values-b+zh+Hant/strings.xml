@@ -1218,4 +1218,9 @@
     <string name="cloud_sync_help_body">原始碼附帶單一檔案伺服器，保存對話後即使應用關閉或解除安裝，也能透過瀏覽器開啟伺服器位址繼續與 AI 對話；重新安裝應用後可一鍵拉回全部記錄。</string>
     <string name="memory_auto_update_enable">對話自動更新記憶</string>
     <string name="memory_auto_update_summary">每次回覆後自動擷取關鍵資訊寫入 MEMORY.md，帶本機快取</string>
+    <string name="chat_auto_approve_toggle">允許AI操作</string>
+    <string name="tool_approval_title">AI 請求執行操作</string>
+    <string name="tool_approval_hint">點擊輸入框上方的盾牌圖標，之後不再逐次詢問</string>
+    <string name="tool_approval_allow">允許</string>
+    <string name="tool_approval_deny">拒絕</string>
 </resources>

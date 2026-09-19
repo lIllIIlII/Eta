@@ -360,8 +360,10 @@ internal fun AgentWorkProcess(
     var manuallyExpanded by rememberSaveable(id) { mutableStateOf(false) }
 
     LaunchedEffect(running) {
-        if (running && !manuallyExpanded) {
-            expanded = true
+        if (running) {
+            if (!manuallyExpanded) expanded = true
+        } else {
+            if (!manuallyExpanded) expanded = false
         }
     }
 
@@ -2086,7 +2088,11 @@ private fun ThinkingRow(
     val completedMarkdownState = (streamingState ?: retainedStreamingState)
         ?.snapshot?.completedStateFor(message.content)
     LaunchedEffect(message.isStreaming) {
-        if (message.isStreaming && !manuallyExpanded) expanded = true
+        if (message.isStreaming) {
+            if (!manuallyExpanded) expanded = true
+        } else {
+            if (!manuallyExpanded) expanded = false
+        }
     }
 
     val stableMarkdownState = if (streamingState == null && completedMarkdownState == null) {
@@ -2178,7 +2184,21 @@ private fun ThinkingRow(
             )
         }
 
-        AnimatedVisibility(visible = expanded && message.content.isNotBlank()) {
+        AnimatedVisibility(
+            visible = expanded && message.content.isNotBlank(),
+            enter = fadeIn() + expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+            ),
+            exit = fadeOut() + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+            ),
+        ) {
             Column {
                 if (!compact) {
                     Box(

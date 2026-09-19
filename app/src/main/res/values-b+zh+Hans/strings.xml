@@ -1230,4 +1230,9 @@
     <string name="cloud_sync_help_body">源码附带单文件服务器，保存对话后即使应用关闭或卸载，也能通过浏览器打开服务器地址继续与 AI 对话；重装应用后可一键拉回全部记录。</string>
     <string name="memory_auto_update_enable">对话自动更新记忆</string>
     <string name="memory_auto_update_summary">每次回复后自动提取关键信息写入 MEMORY.md，带本地缓存</string>
+    <string name="chat_auto_approve_toggle">允许AI操作</string>
+    <string name="tool_approval_title">AI 请求执行操作</string>
+    <string name="tool_approval_hint">点击输入框上方的盾牌图标，之后不再逐次询问</string>
+    <string name="tool_approval_allow">允许</string>
+    <string name="tool_approval_deny">拒绝</string>
 </resources>

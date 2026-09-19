@@ -80,7 +80,7 @@ internal class AgentLocalTools(
     private val screenObservationProvider: (
         (AgentScreenObservationContract.Options) -> RootShellDeviceController.Observation
     )? = null,
-    private val beforeToolExecution: (String) -> ToolExecutionDecision = {
+    private val beforeToolExecution: (String, JSONObject) -> ToolExecutionDecision = { _, _ ->
         ToolExecutionDecision.Allow
     },
     private val skillIndexService: SkillIndexService? = null,
@@ -157,7 +157,7 @@ internal class AgentLocalTools(
             }
             deviceToolPermissionError(toolCall.name)?.let { return@runCatching it }
             memoryToolPermissionError(toolCall.name)?.let { return@runCatching it }
-            when (val decision = beforeToolExecution(toolCall.name)) {
+            when (val decision = beforeToolExecution(toolCall.name, args)) {
                 ToolExecutionDecision.Allow -> Unit
                 is ToolExecutionDecision.Reject -> {
                     if (decision.code.startsWith("ACCESSIBILITY_")) publishedObservation.set(PublishedObservation())
@@ -202,7 +202,15 @@ internal class AgentLocalTools(
                 "terminal" -> textResult(terminalTool { terminal(args) })
                 "run_command" -> textResult(terminalTool { runCommand(args) })
                 "read_file" -> textResult(terminalTool { readFile(args) })
-                "write_file" -> textResult(terminalTool { writeFile(args) })
+                "write_file" -> textResult(terminalTool {
+                    AgentProtectedPathPolicy.violationForWrite(args.optString("path"))?.let { violation ->
+                        return@terminalTool errorResult(
+                            code = "PROTECTED_PATH_WRITE_DENIED",
+                            message = "$violation 属于受保护的系统路径，已禁止写入或修改。请勿尝试绕过此限制。",
+                        )
+                    }
+                    writeFile(args)
+                })
                 "list_directory" -> textResult(terminalTool { listDirectory(args) })
                 "memory_get" -> textResult(memoryGet(args))
                 "memory_write" -> textResult(memoryWrite(args))
@@ -677,16 +685,32 @@ internal class AgentLocalTools(
             .toString()
     }
 
-    private fun runCommand(args: JSONObject): String =
-        terminalController.runCommand(
+    private fun runCommand(args: JSONObject): String {
+        AgentProtectedPathPolicy.violationForCommand(args.optString("command"))?.let { violation ->
+            return errorResult(
+                code = "PROTECTED_PATH_WRITE_DENIED",
+                message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
+            )
+        }
+        return terminalController.runCommand(
             command = args.optString("command"),
             cwd = args.optString("cwd").ifBlank { null },
             timeoutSeconds = args.optInt("timeout_seconds", 30)
         )
+    }
 
     private fun terminal(args: JSONObject): String {
+        val action = args.optString("action", "open_and_exec")
+        if (action == "open_and_exec" || action == "exec") {
+            AgentProtectedPathPolicy.violationForCommand(args.optString("command"))?.let { violation ->
+                return errorResult(
+                    code = "PROTECTED_PATH_WRITE_DENIED",
+                    message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
+                )
+            }
+        }
         return terminalController.terminalAction(
-            action = args.optString("action", "open_and_exec"),
+            action = action,
             command = args.optString("command"),
             cwd = args.optString("cwd").ifBlank { null },
             timeoutMs = args.optInt("timeout_ms", 30_000),

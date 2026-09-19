@@ -28,6 +28,7 @@ internal object Prefs {
         const val AGENT_DEVICE_SENSITIVE_READ_TOOLS = "agent_device_sensitive_read_tools"
         const val AGENT_DEVICE_SENSITIVE_ACTION_TOOLS = "agent_device_sensitive_action_tools"
         const val AGENT_THINKING_ENABLED = "agent_thinking_enabled"
+        const val AGENT_AUTO_APPROVE_TOOLS = "agent_auto_approve_tools"
         const val AGENT_RUNTIME_CONFIG_JSON = "agent_runtime_config_json"
 
         val BOOLEAN_DEFAULTS: Map<String, Boolean> = mapOf(
@@ -45,7 +46,8 @@ internal object Prefs {
             AGENT_DEVICE_DIRECT_TOOLS to true,
             AGENT_DEVICE_SENSITIVE_READ_TOOLS to true,
             AGENT_DEVICE_SENSITIVE_ACTION_TOOLS to true,
-            AGENT_THINKING_ENABLED to true
+            AGENT_THINKING_ENABLED to true,
+            AGENT_AUTO_APPROVE_TOOLS to false
         )
 
         val LOCAL_AGENT_KEYS: Set<String> = setOf(
@@ -55,6 +57,7 @@ internal object Prefs {
             AGENT_DEVICE_SENSITIVE_READ_TOOLS,
             AGENT_DEVICE_SENSITIVE_ACTION_TOOLS,
             AGENT_THINKING_ENABLED,
+            AGENT_AUTO_APPROVE_TOOLS,
         )
     }
 

@@ -24,16 +24,24 @@ import io.github.mangi.eta.agent.skill.SkillContext
 import io.github.mangi.eta.agent.skill.SkillRuntime
 import io.github.mangi.eta.agent.skill.PublicGitHubSkillSource
 import io.github.mangi.eta.agent.tool.AgentLocalTools
+import io.github.mangi.eta.agent.tool.AgentToolApprovalGate
 import io.github.mangi.eta.agent.tool.AgentToolRequirements
 import io.github.mangi.eta.agent.tool.AgentToolCapabilities
 import io.github.mangi.eta.agent.tool.PendingSkillConflictCapabilityParser
 import io.github.mangi.eta.agent.tool.ToolExecutionDecision
+import io.github.mangi.eta.config.Prefs
 import io.github.mangi.eta.agent.voice.EtaAssistantOverlayService
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.core.safeLogType
 import io.github.mangi.eta.data.repository.AgentMemoryRepository
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
+
+private val USER_APPROVAL_TOOL_NAMES = setOf(
+    "launch_app", "open_uri", "open_system_panel", "press_key",
+    "set_alarm", "set_timer", "set_volume", "media_control",
+    "set_setting", "set_device_state", "app_state_control",
+)
 
 internal class AgentRuntimeRunExecutor(
     context: Context,
@@ -166,10 +174,10 @@ internal class AgentRuntimeRunExecutor(
                 screenshotExcludedPackages = {
                     entrySurfaceGuard?.consumeScreenshotExcludedPackages().orEmpty()
                 },
-                beforeToolExecution = { toolName ->
+                beforeToolExecution = { toolName, toolArgs ->
                     val requiresAccessibility =
                         AgentToolRequirements.requiresAccessibility(toolName)
-                    if (
+                    val baseDecision = if (
                         !requiresAccessibility &&
                         !AgentOverlayVisibilityPolicy.requiresEntrySurfaceDismissal(toolName)
                     ) {
@@ -193,6 +201,29 @@ internal class AgentRuntimeRunExecutor(
                                 )
                             else -> ToolExecutionDecision.Allow
                         }
+                    }
+                    if (baseDecision !is ToolExecutionDecision.Allow) {
+                        baseDecision
+                    } else if (
+                        toolName in USER_APPROVAL_TOOL_NAMES &&
+                        !Prefs.isEnabled(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS)
+                    ) {
+                        val approved = runBlocking {
+                            AgentToolApprovalGate.await(
+                                toolName = toolName,
+                                summary = summarizeToolArguments(toolName, toolArgs),
+                            )
+                        }
+                        if (approved) {
+                            ToolExecutionDecision.Allow
+                        } else {
+                            ToolExecutionDecision.Reject(
+                                code = "USER_APPROVAL_DENIED",
+                                message = "用户未确认或拒绝了本次操作（$toolName），本次未执行；请勿在当前任务中重复调用该工具，可先向用户说明目的。",
+                            )
+                        }
+                    } else {
+                        baseDecision
                     }
                 },
                 skillIndexService = skillIndexService,
@@ -401,5 +432,21 @@ internal class AgentRuntimeRunExecutor(
                     "Agent runtime event projection failed: type=${throwable.safeLogType()}"
                 }
             }
+    }
+
+    private fun summarizeToolArguments(toolName: String, args: org.json.JSONObject): String {
+        if (args.length() == 0) return toolName
+        val preferredKeys = listOf(
+            "package_name", "app_name", "uri", "panel", "button", "key", "value",
+            "setting_key", "setting_value", "state", "action", "duration_ms",
+        )
+        val parts = (preferredKeys.filter { args.has(it) } + args.keys().asSequence().toList())
+            .distinct()
+            .take(4)
+            .map { key ->
+                val value = args.opt(key)?.toString().orEmpty().take(60)
+                "$key=$value"
+            }
+        return parts.joinToString(", ").ifBlank { toolName }
     }
 }

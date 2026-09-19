@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "notice": "Eta v3.1.2 已发布：命令长度拓宽、工具调用内容可查看、新增 Linux 工具与内置 Skills、启动更新检测与液态玻璃弹窗",
+  "notice": "Eta v3.1.3 已发布：流畅度与过渡动画优化、思考过程自动收起、开屏修复与 Made by Ccat 署名、受保护路径防护、AI 操作确认开关",
   "systemPromptPrefix": "",
   "flags": {},
   "apk": {
-    "versionCode": 2026091901,
-    "versionName": "3.1.2",
-    "url": "https://github.com/lIllIIlII/Eta/releases/download/v3.1.2/Eta-v3.1.2.apk",
-    "notes": "主要更新\n- 命令长度大幅拓宽：Linux 终端 64K、Root 终端 32K，超长脚本与 heredoc 不再被截断\n- 工具调用内容可查看：python 脚本与终端命令完整展示，写入文件显示目标路径与源码内容\n- Linux 环境新增 4 组工具：Git、编译工具链、多媒体处理、命令行工具集\n- 内置 Skills 新增 6 个：docx、xlsx、pptx、pdf、web-research、data-analysis\n- 启动自动检测新版本，应用内直接下载安装或一键热更新"
+    "versionCode": 2026091902,
+    "versionName": "3.1.3",
+    "url": "https://github.com/lIllIIlII/Eta/releases/download/v3.1.3/Eta-v3.1.3.apk",
+    "notes": "主要更新\n- 流畅度与过渡动画优化\n- 思考过程结束后自动收起，不再常驻展开\n- 修复开屏动画偶发卡住的问题，开屏下方新增 Made by Ccat 署名\n- 受保护路径防护：禁止 AI 修改系统分区等关键路径文件\n- AI 操作确认：敏感操作默认需用户确认，输入栏盾牌图标可开启免确认"
   }
 }

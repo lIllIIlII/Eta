@@ -3,6 +3,8 @@ package io.github.mangi.eta.ui.app
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.AnimationUtils
@@ -27,21 +29,37 @@ private class StartupSplash(
     private val isContentReady: () -> Boolean,
 ) : DefaultLifecycleObserver, ViewTreeObserver.OnPreDrawListener {
     private val content = activity.findViewById<View>(android.R.id.content)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var splashView: SplashScreenView? = null
     private var exitAnimator: ValueAnimator? = null
     private var hasStopped = false
+    private var preDrawReleased = false
 
     fun install() {
         activity.lifecycle.addObserver(this)
 
         content.viewTreeObserver.addOnPreDrawListener(this)
         activity.splashScreen.setOnExitAnimationListener(::onExit)
+        mainHandler.postDelayed(::releasePreDrawGate, CONTENT_READY_TIMEOUT_MILLIS)
     }
 
     override fun onPreDraw(): Boolean {
         if (!isContentReady()) return false
-        content.viewTreeObserver.removeOnPreDrawListener(this)
+        releasePreDrawGate()
         return true
+    }
+
+    private fun releasePreDrawGate() {
+        if (preDrawReleased) return
+        preDrawReleased = true
+        mainHandler.removeCallbacksAndMessages(null)
+        if (content.viewTreeObserver.isAlive) {
+            content.viewTreeObserver.removeOnPreDrawListener(this)
+        }
+    }
+
+    private companion object {
+        const val CONTENT_READY_TIMEOUT_MILLIS = 6_000L
     }
 
     private fun onExit(view: SplashScreenView) {
@@ -108,9 +126,7 @@ private class StartupSplash(
 
     override fun onDestroy(owner: LifecycleOwner) {
         dismiss()
-        if (content.viewTreeObserver.isAlive) {
-            content.viewTreeObserver.removeOnPreDrawListener(this)
-        }
+        releasePreDrawGate()
         activity.splashScreen.clearOnExitAnimationListener()
         activity.lifecycle.removeObserver(this)
     }

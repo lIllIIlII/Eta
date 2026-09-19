@@ -1247,4 +1247,9 @@
     <string name="cloud_sync_help_body">The bundled single-file server stores your conversations and can keep chatting with the AI even when the app is closed or uninstalled: open the server address in a browser to continue the conversation, and everything is pulled back automatically after reinstalling.</string>
     <string name="memory_auto_update_enable">Auto-update memory from chats</string>
     <string name="memory_auto_update_summary">After each reply, key facts are extracted automatically and appended to MEMORY.md with a local cache</string>
+    <string name="chat_auto_approve_toggle">Auto-approve AI actions</string>
+    <string name="tool_approval_title">AI wants to perform an action</string>
+    <string name="tool_approval_hint">Tap the shield icon above the input box to stop asking next time</string>
+    <string name="tool_approval_allow">Allow</string>
+    <string name="tool_approval_deny">Deny</string>
 </resources>
