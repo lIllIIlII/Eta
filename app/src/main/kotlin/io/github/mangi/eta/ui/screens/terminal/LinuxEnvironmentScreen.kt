@@ -28,6 +28,7 @@ import io.github.mangi.eta.agent.terminal.AlpineInstallStage
 import io.github.mangi.eta.agent.terminal.ApkAnalysisInstallProgress
 import io.github.mangi.eta.agent.terminal.ApkAnalysisInstallResult
 import io.github.mangi.eta.agent.terminal.ApkAnalysisInstallStage
+import io.github.mangi.eta.agent.terminal.AndroidNdkInstaller
 import io.github.mangi.eta.agent.terminal.DebianEnvironmentInstaller
 import io.github.mangi.eta.agent.terminal.DebianEnvironmentState
 import io.github.mangi.eta.agent.terminal.DebianInstallProgress

@@ -28,7 +28,7 @@ internal object AlpineEnvironmentPaths {
     const val DEV_TOOLS_REVISION = 1
     const val MEDIA_TOOLS_REVISION = 1
     const val NETUTIL_TOOLS_REVISION = 1
-    const val ANDROID_BUILD_TOOLS_REVISION = 1
+    const val ANDROID_BUILD_TOOLS_REVISION = 2
     const val ANDROID_NDK_REVISION = 1
 
     fun environmentDir(context: Context): File =

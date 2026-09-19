@@ -991,7 +991,7 @@
   <string name="linux_netutil_tools_summary">Install curl, wget, jq, ripgrep, fd, zip/unzip, tar/xz, tmux, htop, tree, nano, vim, rsync, nmap, and other common tools</string>
   <string name="linux_netutil_tools_ready">curl, jq, ripgrep, fd, tmux, htop, and other common tools are ready</string>
   <string name="linux_android_build_tools">Android packaging tools</string>
-  <string name="linux_android_build_tools_summary">Install JDK 21, Gradle, adb/fastboot and aapt2/apksigner/zipalign/apktool (Debian) for building and signing APKs on device</string>
+  <string name="linux_android_build_tools_summary">Install JDK 25 (LTS), Gradle, adb/fastboot and aapt2/apksigner/zipalign/apktool (Debian) for building and signing APKs on device</string>
   <string name="linux_android_build_tools_ready">Android packaging toolchain is ready</string>
   <string name="linux_android_ndk_tools">Android NDK</string>
   <string name="linux_android_ndk_tools_summary">Install Android NDK (about 2 GB download; at least 6 GB free space required) into /opt/eta/android-ndk for native code compilation</string>

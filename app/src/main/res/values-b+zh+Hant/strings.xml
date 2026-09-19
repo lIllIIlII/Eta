@@ -967,7 +967,7 @@
   <string name="linux_netutil_tools_summary">安裝 curl、wget、jq、ripgrep、fd、zip/unzip、tar/xz、tmux、htop、tree、nano、vim、rsync、nmap 等常用工具</string>
   <string name="linux_netutil_tools_ready">curl、jq、ripgrep、fd、tmux、htop 等常用工具已就緒</string>
   <string name="linux_android_build_tools">安卓打包工具</string>
-  <string name="linux_android_build_tools_summary">安裝 JDK 21、Gradle、adb/fastboot 及 aapt2/apksigner/zipalign/apktool（Debian），用於在裝置上建置並簽署 APK</string>
+  <string name="linux_android_build_tools_summary">安裝 JDK 25（LTS）、Gradle、adb/fastboot 及 aapt2/apksigner/zipalign/apktool（Debian），用於在裝置上建置並簽署 APK</string>
   <string name="linux_android_build_tools_ready">安卓打包工具鏈已就緒</string>
   <string name="linux_android_ndk_tools">Android NDK</string>
   <string name="linux_android_ndk_tools_summary">安裝 Android NDK（約 2 GB 下載，需要至少 6 GB 可用空間）到 /opt/eta/android-ndk，用於原生程式碼編譯</string>

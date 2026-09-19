@@ -63,7 +63,7 @@ internal object ApkUpdateInstaller {
         throw lastException ?: java.io.IOException("download_failed")
     }
 
-    private fun downloadOnce(
+    private suspend fun downloadOnce(
         url: String,
         target: File,
         onProgress: (bytesRead: Long, totalBytes: Long) -> Unit,

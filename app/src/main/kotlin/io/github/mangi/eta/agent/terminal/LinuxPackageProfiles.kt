@@ -179,12 +179,12 @@ internal object LinuxPackageProfiles {
         revision = AlpineEnvironmentPaths.ANDROID_BUILD_TOOLS_REVISION,
         specs = mapOf(
             LinuxDistribution.ALPINE to LinuxPackageSpec(
-                packages = listOf("openjdk21-jdk", "gradle", "android-tools"),
+                packages = listOf("openjdk25-jdk", "gradle", "android-tools"),
                 setupScript = "gradle --version >/dev/null 2>&1 || true",
             ),
             LinuxDistribution.DEBIAN to LinuxPackageSpec(
                 packages = listOf(
-                    "openjdk-21-jdk-headless", "aapt", "apksigner", "zipalign",
+                    "openjdk-25-jdk-headless", "aapt", "apksigner", "zipalign",
                     "apktool", "adb",
                 ),
             ),
