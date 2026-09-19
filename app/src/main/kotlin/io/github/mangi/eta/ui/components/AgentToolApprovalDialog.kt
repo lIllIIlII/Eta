@@ -213,7 +213,11 @@ private fun AgentToolApprovalDialog(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = stringResource(R.string.tool_approval_hint),
+                        text = if (request.manualControl) {
+                            stringResource(R.string.tool_approval_hint_manual)
+                        } else {
+                            stringResource(R.string.tool_approval_hint)
+                        },
                         color = colorScheme.onSurfaceVariantSummary,
                         fontSize = 12.sp,
                     )
@@ -288,6 +292,19 @@ private fun approvalToolLabel(toolName: String): String = when (toolName) {
     "set_setting" -> "修改系统设置"
     "set_device_state" -> "更改设备状态"
     "app_state_control" -> "控制应用状态"
+    "tap" -> "点击屏幕"
+    "tap_area" -> "点击屏幕区域"
+    "tap_element" -> "点击界面控件"
+    "long_press" -> "长按屏幕"
+    "long_press_element" -> "长按界面控件"
+    "swipe" -> "滑动屏幕"
+    "scroll" -> "滚动屏幕"
+    "scroll_element" -> "滚动界面控件"
+    "input_text" -> "输入文字"
+    "replace_text" -> "替换文字"
+    "clear_text" -> "清空文字"
+    "paste_text" -> "粘贴文字"
+    "set_clipboard" -> "写入剪贴板"
     else -> toolName
 }
 

@@ -175,7 +175,7 @@ Eta 不对浏览器请求执行额外的 URL、DNS、IP、主机数量、请求�
 
 - `android` 是原生 Android Shell，负责系统、应用、日志、Magisk 和设备文件操作。Root 会话会自动发现 Magisk、KernelSU 或 APatch 提供的 BusyBox，并以 standalone `ash` 补齐不在系统 PATH 中的 applet。
 - Linux 用户态在 Alpine musl 与 Debian Trixie glibc 中二选一，选择持久化后由模型工具、块式终端和控制台共同使用；模型可见协议统一为 `environment=linux`。基础 rootfs 与基础工具分步安装，基础工具集不包含 Python 或 Node.js；Python profile 只安装 uv，再由 uv 全局安装最新正式版 Python，Node.js profile 安装当前可用的最新正式版。SSH 使用发行版最新稳定包，APK 分析在两个发行版中均可单独安装。Kimi Code profile 依赖 Node.js profile，通过 npm 安装最新正式版 `@moonshot-ai/kimi-code`（国内镜像优先），两个发行版均可使用；安装就绪后可在环境页一键启动 Kimi Web——以守护任务常驻 `kimi web`，从日志解析带 token 的本机地址并拉起系统浏览器。App 侧只读取安装器写入的完成标记，不再从非 Root 进程重复检查 rootfs 内的符号链接、二进制或执行权限。Eta 通过独立 mount namespace + Root chroot 运行所选环境；Linux 默认在映射到 Eta Android 工作目录的 `/workspace` 中执行，共享存储位于 `/sdcard`。它不是安全沙箱，也不会取代 Android 环境。
-- 中国大陆网络下，Alpine APK 只尝试阿里云与官方 CDN；Debian 主仓库只尝试清华 TUNA 与 Debian 官方源，安全更新固定使用 Debian 官方源。成功的源会写回 rootfs 供后续 profile 和工具安装复用；APT 同时关闭易触发连接重置的 HTTP pipelining 并启用重试。GitHub 制品只尝试一个固定 HTTPS 下载入口，再回到官方地址，所有 rootfs/制品仍必须通过固定大小和 SHA-256 校验。
+- 中国大陆网络下，Alpine APK 只尝试阿里云与官方 CDN；Debian 主仓库只尝试清华 TUNA 与 Debian 官方源，安全更新固定使用 Debian 官方源。成功的源会写回 rootfs 供后续 profile 和工具安装复用；APT 同时关闭易触发连接重置的 HTTP pipelining 并启用重试。GitHub 制品与 App 更新安装包依次尝试 `gh-proxy`、`ghproxy`、`ghfast` 三个国内加速前缀，再回退官方 `github.com` 地址；所有 rootfs/制品仍必须通过固定大小和 SHA-256 校验。
 
 首页溢出菜单的「打开终端」是供用户手动操作的终端，默认是块式终端，BusyBox `script` 可用时可切换到 PTY 控制台模式：经 `script` 为 shell 分配伪终端（启动时 stty 设定网格尺寸、TERM 宣告为 xterm-256color），输出字节流由 VT 子集屏幕缓冲区维护成字符网格——支持 SGR 颜色与样式、光标定位、行/屏擦除、滚动区、备用屏幕（alt buffer）与宽字符占格，滚动历史有界保留；软键盘输入经隐藏输入框捕获直接写 stdin，Esc/Ctrl/Tab/方向键由键条补齐，Ctrl 组合键产生真实控制字节。两种模式各自支持多会话并存（上限各 6 个），状态栏的会话列表统一提供新建、切换、重启与关闭；切换环境与离开页面都不回收存活会话，会话由 ViewModel 持有到手动关闭或进程死亡。两种模式的会话启动时都显式加载 `/etc/profile` 与 `~/.profile`，安装器写入 PATH 的用户 CLI 可直接运行。
 
@@ -229,6 +229,15 @@ Markdown 空行只参与块结构解析，不按源码数量累加可见高度�
 - 默认助理修复异步执行并按用户串行，完成时重新核验 role、目标与开关状态
 - 息屏后的 Hey Google 恢复只响应系统息屏事件；最多串行尝试 3 次，失败才投递下一次，亮屏/成功/结束都会移除未执行 callback
 - Google App 的锁屏/亮屏语音输入优先 Hook 固定 FloatyActivity，不常驻拦截 Google App 所有页面；语音补偿只按同一 FloatyActivity 实例去重，避免重复补发又不影响快速关闭后再次启动
+
+## 应用更新与安全限制
+
+App 更新只依赖 GitHub Release，不再有远程“热更新”配置：设置页的「检查更新」先请求 `api.github.com`，失败后改走 `github.com/<repo>/releases/latest` 的重定向与 `expanded_assets` 页面解析发布标签和 APK 资产名，全部失败时提示用户直接打开发布页。下载安装包时按候选源顺序逐个尝试（默认官方地址优先，开启「优先使用国内 GitHub 加速镜像」后镜像优先），每个源下载完成后都用 `PackageManager.getPackageArchiveInfo` 校验包名与 versionCode，只有比当前安装版本更新的 APK 才会交给系统安装器；失败自动切换下一个源，下载期间可取消，写盘使用 `.part` 临时文件并在校验通过后改名。设置页与启动弹窗共用同一套状态，下载中允许关闭弹窗，不会阻塞界面。
+
+安全设置还提供两项运行期限制：
+
+- **AI 操控手机需手动允许**（`agent_manual_device_control`）：开启后 `launch_app`、`tap`、`input_text`、`set_volume`、改系统设置等手机操作工具每次执行前都必须经 `AgentToolApprovalGate` 得到用户允许，输入栏的免确认开关不再生效；被拒绝时返回 `USER_APPROVAL_DENIED` 并提示模型不要重复调用。
+- **禁止 AI 访问指定路径**（`agent_path_blocklist_enabled` + `agent_path_blocklist`，调试用）：用户列出的绝对路径及其子路径会被 `AgentProtectedPathPolicy` 判定为禁止访问，`read_file`、`write_file`、`list_directory`、`read_image` 与包含这些路径的 shell 命令都会返回 `USER_BLOCKED_PATH_DENIED`。该限制同时写入系统提示，避免模型反复尝试。
 
 ## 预期行为
 

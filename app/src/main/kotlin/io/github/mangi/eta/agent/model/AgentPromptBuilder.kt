@@ -1,7 +1,7 @@
 package io.github.mangi.eta.agent.model
 
-import io.github.mangi.eta.agent.hotupdate.HotUpdateState
 import io.github.mangi.eta.agent.memory.AgentMemoryContext
+import io.github.mangi.eta.config.Prefs
 import io.github.mangi.eta.agent.skill.SkillContext
 import io.github.mangi.eta.agent.roleplay.RoleplayRunContext
 import org.json.JSONArray
@@ -142,9 +142,7 @@ internal object AgentPromptBuilder {
         roleplayContext?.personaMessage()?.let(messages::put)
         buildMemorySystemMessage(memoryContext, writable = roleplayContext == null)?.let(messages::put)
         buildSkillSystemMessage(skillContext)?.let(messages::put)
-        HotUpdateState.snapshot().systemPromptPrefix.trim().takeIf(String::isNotBlank)?.let { prefix ->
-            messages.put(systemMessage(prefix))
-        }
+        buildUserRestrictionMessage()?.let(messages::put)
         return messages
     }
 
@@ -206,6 +204,25 @@ internal object AgentPromptBuilder {
                     "正文引用其他文本资源时再调用 skills_read_resource；不要为了读取 Skill 资源而开启终端，也不要凭索引臆测正文细节。"
             )
         }
+        return systemMessage(body)
+    }
+
+    private fun buildUserRestrictionMessage(): JSONObject? {
+        val blockedPaths = if (Prefs.blocklistEnabled()) Prefs.blocklistPaths() else emptyList()
+        val manualControl = Prefs.isEnabled(Prefs.Keys.AGENT_MANUAL_DEVICE_CONTROL)
+        if (blockedPaths.isEmpty() && !manualControl) return null
+        val body = buildString {
+            if (manualControl) {
+                appendLine("用户已开启“AI 操控手机需手动允许”：launch_app、tap、input_text、set_volume、改系统设置等手机操作工具每次执行前都会弹出确认，")
+                appendLine("只有用户点了允许才会真正执行。被拒绝时不要重复调用同一工具，先向用户说明目的；也不要因为被拒绝就改用 shell 或无障碍绕过。")
+            }
+            if (blockedPaths.isNotEmpty()) {
+                appendLine("用户已在设置中禁止 AI 访问以下路径（含其子路径）：")
+                blockedPaths.forEach { path -> appendLine("- $path") }
+                appendLine("read_file、write_file、list_directory、read_image 以及包含这些路径的 shell 命令都会被拦截并返回 USER_BLOCKED_PATH_DENIED；")
+                appendLine("不要尝试用别名、符号链接或其它工具绕过，需要访问时请先请用户在设置中解除该路径限制。")
+            }
+        }.trim()
         return systemMessage(body)
     }
 

@@ -24,6 +24,7 @@ import io.github.mangi.eta.agent.skill.SkillContext
 import io.github.mangi.eta.agent.skill.SkillRuntime
 import io.github.mangi.eta.agent.skill.PublicGitHubSkillSource
 import io.github.mangi.eta.agent.tool.AgentLocalTools
+import io.github.mangi.eta.agent.tool.AgentManualApprovalPolicy
 import io.github.mangi.eta.agent.tool.AgentToolApprovalGate
 import io.github.mangi.eta.agent.tool.AgentToolRequirements
 import io.github.mangi.eta.agent.tool.AgentToolCapabilities
@@ -202,20 +203,31 @@ internal class AgentRuntimeRunExecutor(
                             else -> ToolExecutionDecision.Allow
                         }
                     }
+                    val manualControl = AgentManualApprovalPolicy.requiresManualApproval(
+                        toolName = toolName,
+                        manualControlEnabled = Prefs.isEnabled(Prefs.Keys.AGENT_MANUAL_DEVICE_CONTROL),
+                    )
                     if (baseDecision !is ToolExecutionDecision.Allow) {
                         baseDecision
                     } else if (
-                        toolName in USER_APPROVAL_TOOL_NAMES &&
-                        !Prefs.isEnabled(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS)
+                        manualControl ||
+                        (toolName in USER_APPROVAL_TOOL_NAMES &&
+                            !Prefs.isEnabled(Prefs.Keys.AGENT_AUTO_APPROVE_TOOLS))
                     ) {
                         val approved = runBlocking {
                             AgentToolApprovalGate.await(
                                 toolName = toolName,
                                 summary = summarizeToolArguments(toolName, toolArgs),
+                                manualControl = manualControl,
                             )
                         }
                         if (approved) {
                             ToolExecutionDecision.Allow
+                        } else if (manualControl) {
+                            ToolExecutionDecision.Reject(
+                                code = "USER_APPROVAL_DENIED",
+                                message = AgentManualApprovalPolicy.denialMessage(toolName),
+                            )
                         } else {
                             ToolExecutionDecision.Reject(
                                 code = "USER_APPROVAL_DENIED",

@@ -6,6 +6,9 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
@@ -58,12 +61,11 @@ import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.accessibility.AccessibilityProtectionClient
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
-import io.github.mangi.eta.agent.hotupdate.HotUpdateState
 import io.github.mangi.eta.config.PowerAssistantTarget
 import io.github.mangi.eta.config.Prefs
 import io.github.mangi.eta.data.repository.ApkUpdateInstaller
+import io.github.mangi.eta.data.repository.formatDownloadSize
 import io.github.mangi.eta.data.repository.AppUpdateChecker
-import io.github.mangi.eta.data.repository.HotUpdateRepository
 import io.github.mangi.eta.data.repository.ProviderRepository
 import io.github.mangi.eta.data.repository.RuntimeConfigRepository
 import io.github.mangi.eta.systemizer.GoogleAppSystemizerInstaller
@@ -76,12 +78,15 @@ import io.github.mangi.eta.ui.components.MiuixDialogActions
 import io.github.mangi.eta.ui.components.MiuixScaffoldPage
 import io.github.mangi.eta.ui.components.PreferenceIcon
 import io.github.mangi.eta.ui.navigation.AppRoute
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
@@ -119,9 +124,12 @@ internal fun SettingsScreen(
     var updateDialogNewVersion by remember { mutableStateOf("") }
     var updateDownloadUrl by remember { mutableStateOf("") }
     var updateDownloading by remember { mutableStateOf(false) }
-    var updateDownloadProgress by remember { mutableStateOf(0) }
-    var hotUpdateVersion by remember { mutableStateOf(HotUpdateState.snapshot().version) }
-    var hotUpdateRefreshing by remember { mutableStateOf(false) }
+    var updateProgress by remember { mutableStateOf<ApkUpdateInstaller.Progress?>(null) }
+    var updateDownloadCancelled by remember { mutableStateOf(false) }
+    var updateJob by remember { mutableStateOf<Job?>(null) }
+    var pathBlocklistPaths by remember { mutableStateOf(Prefs.blocklistPaths()) }
+    var pathBlocklistDraft by remember { mutableStateOf("") }
+    var showPathBlocklistDialog by remember { mutableStateOf(false) }
     val currentVersionName = remember { AppUpdateChecker.currentVersion(context) }
     val openAssistantSettings: () -> Unit = {
         val failed = runCatching {
@@ -224,6 +232,50 @@ internal fun SettingsScreen(
                         title = stringResource(R.string.ui_deep_thinking_enabled_by_default_c032d6),
                         key = Prefs.Keys.AGENT_THINKING_ENABLED,
                         icon = Icons.Rounded.Psychology,
+                    )
+                }
+            }
+
+            item(key = "section_security") {
+                SmallTitle(stringResource(R.string.settings_section_security))
+                Card(modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) {
+                    SwitchPref(
+                        context = context,
+                        prefs = agentPrefs,
+                        title = stringResource(R.string.settings_manual_control_title),
+                        summary = stringResource(R.string.settings_manual_control_summary),
+                        key = Prefs.Keys.AGENT_MANUAL_DEVICE_CONTROL,
+                        icon = Icons.Rounded.TouchApp,
+                    )
+
+                    SwitchPref(
+                        context = context,
+                        prefs = agentPrefs,
+                        title = stringResource(R.string.settings_path_blocklist_title),
+                        summary = pathBlocklistSummary(pathBlocklistPaths.size),
+                        key = Prefs.Keys.AGENT_PATH_BLOCKLIST_ENABLED,
+                        icon = Icons.Rounded.Lock,
+                    )
+
+                    ArrowPreference(
+                        title = stringResource(R.string.settings_path_blocklist_dialog_title),
+                        summary = pathBlocklistSummary(pathBlocklistPaths.size),
+                        startAction = {
+                            PreferenceIcon(
+                                icon = Icons.Rounded.Description,
+                            )
+                        },
+                        endActions = {
+                            Text(
+                                text = pathBlocklistPaths.size.toString(),
+                                fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            )
+                        },
+                        onClick = {
+                            pathBlocklistDraft = pathBlocklistPaths.joinToString("\n")
+                            showPathBlocklistDialog = true
+                        },
                     )
                 }
             }
@@ -659,10 +711,18 @@ internal fun SettingsScreen(
                         title = stringResource(R.string.settings_check_update),
                         summary = when {
                             updateChecking -> stringResource(R.string.settings_check_update_checking)
-                            updateDownloading -> stringResource(
-                                R.string.settings_update_downloading,
-                                updateDownloadProgress,
-                            )
+                            updateDownloading -> {
+                                val current = updateProgress
+                                when {
+                                    current == null -> stringResource(R.string.settings_check_update_checking)
+                                    current.indeterminate -> stringResource(
+                                        R.string.settings_update_downloading_unknown,
+                                        formatDownloadSize(current.downloadedBytes),
+                                    )
+
+                                    else -> stringResource(R.string.settings_update_downloading, current.percent)
+                                }
+                            }
                             else -> stringResource(R.string.settings_current_version, currentVersionName)
                         },
                         enabled = !updateChecking && !updateDownloading,
@@ -673,6 +733,8 @@ internal fun SettingsScreen(
                         },
                         onClick = {
                             updateChecking = true
+                            updateProgress = null
+                            updateDownloadCancelled = false
                             coroutineScope.launch {
                                 val release = runCatching {
                                     withContext(Dispatchers.IO) { AppUpdateChecker.latestRelease() }
@@ -694,35 +756,13 @@ internal fun SettingsScreen(
                             }
                         },
                     )
-                    ArrowPreference(
-                        title = stringResource(R.string.settings_hotupdate_title),
-                        summary = if (hotUpdateRefreshing) {
-                            stringResource(R.string.settings_check_update_checking)
-                        } else {
-                            stringResource(R.string.settings_hotupdate_summary, hotUpdateVersion)
-                        },
-                        enabled = !hotUpdateRefreshing,
-                        startAction = {
-                            PreferenceIcon(
-                                icon = Icons.Rounded.CloudSync,
-                            )
-                        },
-                        onClick = {
-                            hotUpdateRefreshing = true
-                            coroutineScope.launch {
-                                val outcome = runCatching {
-                                    HotUpdateRepository.refreshSuspend(context)
-                                }.getOrNull()
-                                hotUpdateRefreshing = false
-                                hotUpdateVersion = HotUpdateState.snapshot().version
-                                val message = if (outcome?.applied == true) {
-                                    R.string.settings_hotupdate_updated
-                                } else {
-                                    R.string.settings_hotupdate_failed
-                                }
-                                Toast.makeText(context.applicationContext, context.getString(message), Toast.LENGTH_SHORT).show()
-                            }
-                        },
+                    SwitchPref(
+                        context = context,
+                        prefs = agentPrefs,
+                        title = stringResource(R.string.settings_update_mirror_title),
+                        summary = stringResource(R.string.settings_update_mirror_summary),
+                        key = Prefs.Keys.GITHUB_MIRROR_FIRST,
+                        icon = Icons.Rounded.CloudSync,
                     )
                     ArrowPreference(
                         title = stringResource(R.string.ui_source_code_740296),
@@ -745,6 +785,67 @@ internal fun SettingsScreen(
                             )
                             context.startActivity(intent)
                         },
+                    )
+                }
+            }
+        }
+
+        if (showPathBlocklistDialog) {
+            WindowDialog(
+                show = true,
+                title = stringResource(R.string.settings_path_blocklist_dialog_title),
+                summary = stringResource(R.string.settings_path_blocklist_dialog_summary),
+                onDismissRequest = { showPathBlocklistDialog = false },
+            ) {
+                Column {
+                    TextField(
+                        value = pathBlocklistDraft,
+                        onValueChange = { value -> pathBlocklistDraft = value.take(4_000) },
+                        label = stringResource(R.string.settings_path_blocklist_input_label),
+                        singleLine = false,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 132.dp),
+                    )
+                    MiuixDialogActions(
+                        confirmText = stringResource(R.string.action_confirm),
+                        onCancel = { showPathBlocklistDialog = false },
+                        onConfirm = {
+                            val entries = pathBlocklistDraft
+                                .split('\n', ',', ';')
+                                .map { entry -> entry.trim() }
+                                .filter { entry -> entry.isNotEmpty() }
+                            val accepted = entries
+                                .filter { entry -> entry.startsWith("/") && entry.length > 1 }
+                                .distinct()
+                            val ignored = entries.count { entry -> !entry.startsWith("/") }
+                            Prefs.setBlocklistPaths(accepted)
+                            agentPrefs
+                                ?.edit()
+                                ?.putBoolean(Prefs.Keys.AGENT_PATH_BLOCKLIST_ENABLED, accepted.isNotEmpty())
+                                ?.commit()
+                            pathBlocklistPaths = accepted
+                            showPathBlocklistDialog = false
+                            val message = buildString {
+                                append(
+                                    context.getString(
+                                        R.string.settings_path_blocklist_saved,
+                                        accepted.size,
+                                    ),
+                                )
+                                if (ignored > 0) {
+                                    append(" · ")
+                                    append(
+                                        context.getString(
+                                            R.string.settings_path_blocklist_ignored,
+                                            ignored,
+                                        ),
+                                    )
+                                }
+                            }
+                            Toast.makeText(context.applicationContext, message, Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.padding(top = 16.dp),
                     )
                 }
             }
@@ -791,16 +892,66 @@ internal fun SettingsScreen(
                 } else {
                     stringResource(R.string.settings_check_update)
                 },
-                summary = updateDialogSummary,
-                onDismissRequest = { if (!updateDownloading) updateDialogVisible = false },
+                summary = if (updateDownloading) {
+                    val current = updateProgress
+                    val progressText = when {
+                        current == null -> stringResource(R.string.settings_check_update_checking)
+                        current.indeterminate -> stringResource(
+                            R.string.settings_update_downloading_unknown,
+                            formatDownloadSize(current.downloadedBytes),
+                        )
+
+                        else -> stringResource(R.string.settings_update_downloading, current.percent)
+                    }
+                    val attempt = current?.attempt ?: 1
+                    if (attempt > 1) {
+                        progressText + "\n" + stringResource(
+                            R.string.settings_update_mirror_attempt,
+                            attempt,
+                        )
+                    } else {
+                        progressText
+                    }
+                } else {
+                    updateDialogSummary
+                },
+                onDismissRequest = {
+                    if (updateDownloading) {
+                        updateDownloadCancelled = true
+                        updateJob?.cancel()
+                        updateJob = null
+                        updateDownloading = false
+                    }
+                    updateDialogVisible = false
+                },
             ) {
                 MiuixDialogActions(
-                    confirmText = if (updateDialogNewVersion.isNotBlank() && updateDownloadUrl.isNotBlank()) {
-                        stringResource(R.string.settings_update_download)
+                    confirmText = stringResource(R.string.settings_update_download),
+                    confirmEnabled = !updateDownloading && updateDownloadUrl.isNotBlank(),
+                    cancelText = if (updateDownloading) {
+                        stringResource(R.string.settings_update_download_cancel)
                     } else {
-                        stringResource(R.string.ui_knew_cb63c6)
+                        stringResource(R.string.settings_update_open_release)
                     },
-                    onCancel = { if (!updateDownloading) updateDialogVisible = false },
+                    onCancel = {
+                        if (updateDownloading) {
+                            updateDownloadCancelled = true
+                            updateJob?.cancel()
+                            updateJob = null
+                            updateDownloading = false
+                            updateDialogSummary = context.getString(R.string.settings_update_cancelled)
+                            return@MiuixDialogActions
+                        }
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("${AppUpdateChecker.REPO_URL}/releases/latest"),
+                                ),
+                            )
+                        }
+                        updateDialogVisible = false
+                    },
                     onConfirm = {
                         val targetUrl = updateDownloadUrl
                         if (targetUrl.isBlank()) {
@@ -819,30 +970,56 @@ internal fun SettingsScreen(
                             return@MiuixDialogActions
                         }
                         updateDownloading = true
-                        updateDownloadProgress = 0
-                        coroutineScope.launch {
-                            val downloaded = runCatching {
-                                ApkUpdateInstaller.download(context, targetUrl) { progress ->
-                                    updateDownloadProgress = progress
+                        updateProgress = null
+                        updateDownloadCancelled = false
+                        updateDialogSummary = context.getString(R.string.settings_check_update_checking)
+                        updateJob = coroutineScope.launch {
+                            val result = try {
+                                ApkUpdateInstaller.download(context, targetUrl) { value ->
+                                    updateProgress = value
                                 }
-                            }.getOrNull()
+                            } catch (cancellation: CancellationException) {
+                                null
+                            }
                             updateDownloading = false
-                            if (downloaded != null) {
-                                updateDialogVisible = false
-                                Toast.makeText(
-                                    context.applicationContext,
-                                    context.getString(R.string.settings_update_downloaded),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                                runCatching { ApkUpdateInstaller.install(context, downloaded) }
-                            } else {
-                                updateDialogSummary = context.getString(R.string.settings_update_download_failed)
+                            updateJob = null
+                            when (result) {
+                                is ApkUpdateInstaller.DownloadResult.Success -> {
+                                    updateDialogVisible = false
+                                    updateDialogSummary = context.getString(R.string.settings_update_downloaded)
+                                    val installed = ApkUpdateInstaller.install(context, result.file)
+                                    val messageRes = if (installed) {
+                                        R.string.settings_update_downloaded
+                                    } else {
+                                        R.string.settings_update_install_failed
+                                    }
+                                    Toast.makeText(
+                                        context.applicationContext,
+                                        context.getString(messageRes),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                    if (!installed) {
+                                        updateDialogSummary = context.getString(R.string.settings_update_install_failed)
+                                        updateDialogVisible = true
+                                    }
+                                }
+
+                                else -> {
+                                    updateDialogSummary = context.getString(
+                                        if (updateDownloadCancelled) {
+                                            R.string.settings_update_cancelled
+                                        } else {
+                                            R.string.settings_update_all_sources_failed
+                                        },
+                                    )
+                                }
                             }
                         }
                     },
                 )
             }
         }
+
 }
 
 @Composable
@@ -871,6 +1048,14 @@ private fun SystemizerConfirmDialog(
         )
     }
 }
+
+@Composable
+private fun pathBlocklistSummary(count: Int): String =
+    if (count <= 0) {
+        stringResource(R.string.settings_path_blocklist_empty_summary)
+    } else {
+        stringResource(R.string.settings_path_blocklist_summary, count)
+    }
 
 @Composable
 private fun SwitchPref(

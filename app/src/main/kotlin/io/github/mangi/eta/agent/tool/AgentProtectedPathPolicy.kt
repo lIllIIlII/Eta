@@ -1,5 +1,6 @@
 package io.github.mangi.eta.agent.tool
 
+import io.github.mangi.eta.config.Prefs
 import java.io.File
 
 internal object AgentProtectedPathPolicy {
@@ -39,10 +40,26 @@ internal object AgentProtectedPathPolicy {
 
     fun violationForWrite(rawPath: String): String? {
         val normalized = normalize(rawPath) ?: return null
+        if (isUserBlocked(normalized)) return "USER_BLOCKED_PATH_DENIED:$normalized"
         return if (isProtected(normalized)) {
             "PROTECTED_PATH_WRITE_DENIED:$normalized"
         } else {
             null
+        }
+    }
+
+    fun isUserBlocked(rawPath: String): Boolean {
+        val normalized = normalize(rawPath) ?: return false
+        val prefixes = userBlockedPrefixes()
+        if (prefixes.isEmpty()) return false
+        return prefixes.any { prefix -> normalized == prefix || normalized.startsWith("$prefix/") }
+    }
+
+    private fun userBlockedPrefixes(): List<String> {
+        if (!Prefs.blocklistEnabled()) return emptyList()
+        return Prefs.blocklistPaths().mapNotNull { entry ->
+            val normalized = normalize(entry) ?: return@mapNotNull null
+            normalized.takeIf { it != "/" }
         }
     }
 
@@ -51,6 +68,30 @@ internal object AgentProtectedPathPolicy {
         if (command.isEmpty()) return null
         val tokens = tokenize(command)
         if (tokens.isEmpty()) return null
+
+        val blockedPrefixes = userBlockedPrefixes()
+        if (blockedPrefixes.isNotEmpty()) {
+            REDIRECT_PATTERN.findAll(command).forEach { match ->
+                val target = match.groupValues[2].trim('"', '\'', ' ')
+                val normalized = normalize(target)
+                if (normalized != null && blockedPrefixes.any { prefix ->
+                        normalized == prefix || normalized.startsWith("$prefix/")
+                    }
+                ) {
+                    return "USER_BLOCKED_PATH_DENIED:$normalized"
+                }
+            }
+            tokens.forEach { token ->
+                if (!looksLikePath(token)) return@forEach
+                val normalized = normalize(token) ?: return@forEach
+                if (blockedPrefixes.any { prefix ->
+                        normalized == prefix || normalized.startsWith("$prefix/")
+                    }
+                ) {
+                    return "USER_BLOCKED_PATH_DENIED:$normalized"
+                }
+            }
+        }
 
         val protectedIndexes = tokens
             .withIndex()

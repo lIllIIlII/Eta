@@ -29,6 +29,10 @@ internal object Prefs {
         const val AGENT_DEVICE_SENSITIVE_ACTION_TOOLS = "agent_device_sensitive_action_tools"
         const val AGENT_THINKING_ENABLED = "agent_thinking_enabled"
         const val AGENT_AUTO_APPROVE_TOOLS = "agent_auto_approve_tools"
+        const val AGENT_MANUAL_DEVICE_CONTROL = "agent_manual_device_control"
+        const val AGENT_PATH_BLOCKLIST_ENABLED = "agent_path_blocklist_enabled"
+        const val AGENT_PATH_BLOCKLIST = "agent_path_blocklist"
+        const val GITHUB_MIRROR_FIRST = "github_mirror_first"
         const val AGENT_RUNTIME_CONFIG_JSON = "agent_runtime_config_json"
 
         val BOOLEAN_DEFAULTS: Map<String, Boolean> = mapOf(
@@ -47,7 +51,10 @@ internal object Prefs {
             AGENT_DEVICE_SENSITIVE_READ_TOOLS to true,
             AGENT_DEVICE_SENSITIVE_ACTION_TOOLS to true,
             AGENT_THINKING_ENABLED to true,
-            AGENT_AUTO_APPROVE_TOOLS to false
+            AGENT_AUTO_APPROVE_TOOLS to false,
+            AGENT_MANUAL_DEVICE_CONTROL to false,
+            AGENT_PATH_BLOCKLIST_ENABLED to false,
+            GITHUB_MIRROR_FIRST to false
         )
 
         val LOCAL_AGENT_KEYS: Set<String> = setOf(
@@ -58,6 +65,9 @@ internal object Prefs {
             AGENT_DEVICE_SENSITIVE_ACTION_TOOLS,
             AGENT_THINKING_ENABLED,
             AGENT_AUTO_APPROVE_TOOLS,
+            AGENT_MANUAL_DEVICE_CONTROL,
+            AGENT_PATH_BLOCKLIST_ENABLED,
+            GITHUB_MIRROR_FIRST,
         )
     }
 
@@ -99,6 +109,27 @@ internal object Prefs {
     fun getString(key: String): String {
         return remote?.getString(key, "") ?: ""
     }
+
+    fun blocklistPaths(): List<String> {
+        val raw = runCatching { localAgent?.getString(Keys.AGENT_PATH_BLOCKLIST, null) }.getOrNull()
+            ?: runCatching { remote?.getString(Keys.AGENT_PATH_BLOCKLIST, null) }.getOrNull()
+            ?: return emptyList()
+        return raw.split('\n', ',', ';')
+            .map { entry -> entry.trim() }
+            .filter { entry -> entry.startsWith("/") }
+            .distinct()
+    }
+
+    fun setBlocklistPaths(paths: List<String>) {
+        val payload = paths.joinToString("\n")
+        runCatching { localAgent?.edit()?.putString(Keys.AGENT_PATH_BLOCKLIST, payload)?.commit() }
+        runCatching { remote?.edit()?.putString(Keys.AGENT_PATH_BLOCKLIST, payload)?.commit() }
+    }
+
+    fun blocklistEnabled(): Boolean =
+        isEnabled(Keys.AGENT_PATH_BLOCKLIST_ENABLED) && blocklistPaths().isNotEmpty()
+
+    fun githubMirrorFirst(): Boolean = isEnabled(Keys.GITHUB_MIRROR_FIRST)
 
     fun powerAssistantTarget(): PowerAssistantTarget = powerAssistantTarget(remote)
 

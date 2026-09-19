@@ -18,6 +18,7 @@ internal object AgentToolApprovalGate {
         val id: String,
         val toolName: String,
         val summary: String,
+        val manualControl: Boolean = false,
     )
 
     private val pendingRequest = AtomicReference<Request?>(null)
@@ -27,11 +28,12 @@ internal object AgentToolApprovalGate {
     val pending: StateFlow<Request?> = _pending.asStateFlow()
 
     @OptIn(FlowPreview::class)
-    suspend fun await(toolName: String, summary: String): Boolean {
+    suspend fun await(toolName: String, summary: String, manualControl: Boolean = false): Boolean {
         val request = Request(
             id = UUID.randomUUID().toString(),
             toolName = toolName,
             summary = summary.take(200),
+            manualControl = manualControl,
         )
         val deferred = CompletableDeferred<Boolean>()
         deferredRef.set(deferred)

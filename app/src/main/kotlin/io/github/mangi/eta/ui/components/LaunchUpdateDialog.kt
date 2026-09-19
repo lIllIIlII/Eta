@@ -1,5 +1,7 @@
 package io.github.mangi.eta.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -27,7 +29,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,8 +51,10 @@ import androidx.compose.ui.window.DialogProperties
 import io.github.mangi.eta.R
 import io.github.mangi.eta.data.repository.ApkUpdateInstaller
 import io.github.mangi.eta.data.repository.AppUpdateChecker
-import io.github.mangi.eta.data.repository.HotUpdateRepository
+import io.github.mangi.eta.data.repository.formatDownloadSize
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -63,6 +66,7 @@ internal data class LaunchUpdateInfo(
     val versionName: String,
     val notes: String,
     val downloadUrl: String,
+    val releaseUrl: String,
 )
 
 @Composable
@@ -70,7 +74,10 @@ internal fun LaunchUpdateDialogHost() {
     var info by remember { mutableStateOf<LaunchUpdateInfo?>(null) }
     var checkedOnce by rememberSaveable { mutableStateOf(false) }
     var downloading by remember { mutableStateOf(false) }
-    var progress by remember { mutableIntStateOf(0) }
+    var progress by remember { mutableStateOf<ApkUpdateInstaller.Progress?>(null) }
+    var failure by remember { mutableStateOf<String?>(null) }
+    var cancelledByUser by remember { mutableStateOf(false) }
+    var downloadJob by remember { mutableStateOf<Job?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -87,20 +94,17 @@ internal fun LaunchUpdateDialogHost() {
                     it.downloadUrl.isNotBlank() &&
                         AppUpdateChecker.isNewer(it.versionName, currentVersion)
                 }
-                ?.let { LaunchUpdateInfo(it.versionName, it.notes, it.downloadUrl) }
-                ?: run {
-                    val config = HotUpdateRepository.cached(context)
-                    HotUpdateRepository.pendingApkUpdate(context, config)
-                        ?.takeIf { it.apkUrl.isNotBlank() }
-                        ?.let {
-                            LaunchUpdateInfo(
-                                versionName = it.apkVersionName.ifBlank { it.apkVersionCode.toString() },
-                                notes = it.apkNotes,
-                                downloadUrl = it.apkUrl,
-                            )
-                        }
-                }
+                ?.let { LaunchUpdateInfo(it.versionName, it.notes, it.downloadUrl, it.releaseUrl) }
             if (candidate != null) info = candidate
+        }
+    }
+
+    val openReleasePage: (String) -> Unit = { releaseUrl ->
+        val target = releaseUrl.ifBlank { AppUpdateChecker.REPO_URL }
+        runCatching {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(target)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
         }
     }
 
@@ -109,22 +113,18 @@ internal fun LaunchUpdateDialogHost() {
             info = current,
             downloading = downloading,
             progress = progress,
-            onDismiss = { if (!downloading) info = null },
-            onHotUpdate = {
-                coroutineScope.launch {
-                    val outcome = runCatching {
-                        HotUpdateRepository.refreshSuspend(context)
-                    }.getOrNull()
-                    val applied = outcome?.applied == true
-                    val messageRes = if (applied) {
-                        R.string.update_launch_hotupdate_done
-                    } else {
-                        R.string.update_launch_hotupdate_failed
-                    }
-                    Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
-                    if (applied) info = null
-                }
+            failure = failure,
+            onDismiss = {
+                cancelledByUser = true
+                downloadJob?.cancel()
+                downloadJob = null
+                info = null
             },
+            onCancelDownload = {
+                cancelledByUser = true
+                downloadJob?.cancel()
+            },
+            onOpenRelease = { openReleasePage(current.releaseUrl) },
             onUpdate = {
                 if (downloading) return@LaunchUpdateDialog
                 if (!ApkUpdateInstaller.canRequestInstall(context)) {
@@ -136,29 +136,44 @@ internal fun LaunchUpdateDialogHost() {
                     ApkUpdateInstaller.installPermissionSettings(context)
                     return@LaunchUpdateDialog
                 }
+                failure = null
+                progress = null
+                cancelledByUser = false
                 downloading = true
-                progress = 0
-                coroutineScope.launch {
-                    val downloaded = runCatching {
+                downloadJob = coroutineScope.launch {
+                    val result = try {
                         ApkUpdateInstaller.download(context, current.downloadUrl) { value ->
                             progress = value
                         }
-                    }.getOrNull()
+                    } catch (cancellation: CancellationException) {
+                        null
+                    }
                     downloading = false
-                    if (downloaded != null) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.settings_update_downloaded),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                        runCatching { ApkUpdateInstaller.install(context, downloaded) }
-                        info = null
-                    } else {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.settings_update_download_failed),
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                    downloadJob = null
+                    when (result) {
+                        is ApkUpdateInstaller.DownloadResult.Success -> {
+                            val installed = ApkUpdateInstaller.install(context, result.file)
+                            if (installed) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.settings_update_downloaded),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                info = null
+                            } else {
+                                failure = context.getString(R.string.settings_update_install_failed)
+                            }
+                        }
+
+                        else -> {
+                            failure = context.getString(
+                                if (cancelledByUser) {
+                                    R.string.settings_update_cancelled
+                                } else {
+                                    R.string.settings_update_all_sources_failed
+                                },
+                            )
+                        }
                     }
                 }
             },
@@ -170,16 +185,18 @@ internal fun LaunchUpdateDialogHost() {
 private fun LaunchUpdateDialog(
     info: LaunchUpdateInfo,
     downloading: Boolean,
-    progress: Int,
+    progress: ApkUpdateInstaller.Progress?,
+    failure: String?,
     onDismiss: () -> Unit,
-    onHotUpdate: () -> Unit,
+    onCancelDownload: () -> Unit,
+    onOpenRelease: () -> Unit,
     onUpdate: () -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            dismissOnClickOutside = !downloading,
+            dismissOnClickOutside = false,
         ),
     ) {
         var appeared by remember(info.versionName) { mutableStateOf(false) }
@@ -317,8 +334,18 @@ private fun LaunchUpdateDialog(
                             )
                         }
                     }
+                    failure?.takeIf { it.isNotBlank() }?.let { message ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = message,
+                            color = colorScheme.error,
+                            fontSize = 12.sp,
+                        )
+                    }
                     if (downloading) {
                         Spacer(modifier = Modifier.height(14.dp))
+                        val percent = progress?.percent ?: 0
+                        val indeterminate = progress?.indeterminate != false
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -328,7 +355,12 @@ private fun LaunchUpdateDialog(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth(progress.coerceIn(0, 100) / 100f)
+                                    .fillMaxWidth(
+                                        when {
+                                            indeterminate -> 0.35f
+                                            else -> percent.coerceIn(0, 100) / 100f
+                                        },
+                                    )
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp))
                                     .background(colorScheme.primary),
@@ -336,11 +368,28 @@ private fun LaunchUpdateDialog(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = stringResource(R.string.settings_update_downloading, progress),
+                            text = if (indeterminate) {
+                                stringResource(
+                                    R.string.settings_update_downloading_unknown,
+                                    formatDownloadSize(progress?.downloadedBytes ?: 0L),
+                                )
+                            } else {
+                                stringResource(R.string.settings_update_downloading, percent)
+                            },
                             color = colorScheme.onSurfaceVariantSummary,
                             fontSize = 12.sp,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                        val attempt = progress?.attempt ?: 1
+                        if (attempt > 1) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.settings_update_mirror_attempt, attempt),
+                                color = colorScheme.onSurfaceVariantSummary,
+                                fontSize = 12.sp,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(18.dp))
                     Row(
@@ -348,28 +397,29 @@ private fun LaunchUpdateDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         GlassActionButton(
-                            text = stringResource(R.string.update_launch_later),
-                            enabled = !downloading,
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                        )
-                        GlassActionButton(
-                            text = stringResource(R.string.update_launch_hotupdate),
-                            enabled = !downloading,
-                            onClick = onHotUpdate,
-                            modifier = Modifier.weight(1f),
-                        )
-                        GlassActionButton(
-                            text = if (downloading) {
-                                stringResource(R.string.update_launch_downloading_short)
+                            text = if (failure != null) {
+                                stringResource(R.string.settings_update_open_release)
                             } else {
-                                stringResource(R.string.settings_update_download)
+                                stringResource(R.string.update_launch_later)
+                            },
+                            enabled = true,
+                            onClick = if (failure != null) onOpenRelease else onDismiss,
+                            modifier = Modifier.weight(1f),
+                        )
+                        GlassActionButton(
+                            text = when {
+                                failure != null -> stringResource(R.string.settings_update_retry)
+                                downloading -> stringResource(R.string.settings_update_download_cancel)
+                                else -> stringResource(R.string.settings_update_download)
                             },
                             enabled = true,
                             primary = true,
                             filled = downloading,
-                            onClick = onUpdate,
-                            modifier = Modifier.weight(1f),
+                            onClick = when {
+                                downloading -> onCancelDownload
+                                else -> onUpdate
+                            },
+                            modifier = Modifier.weight(2f),
                         )
                     }
                 }

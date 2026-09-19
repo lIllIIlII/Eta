@@ -198,11 +198,24 @@ internal class AgentLocalTools(
                 in DEVICE_TOOL_NAMES ->
                     structuredDeviceTools.execute(toolCall.name, args)
                         ?: textResult(errorResult("UNKNOWN_TOOL", "未知设备工具"))
-                "read_image" -> fileVisionTool { imageTools.readImage(args) }
+                "read_image" -> fileVisionTool {
+                    userBlockedPathError(args.optString("path"), "读取图片")?.let { error ->
+                        return@fileVisionTool textResult(error)
+                    }
+                    imageTools.readImage(args)
+                }
                 "terminal" -> textResult(terminalTool { terminal(args) })
                 "run_command" -> textResult(terminalTool { runCommand(args) })
-                "read_file" -> textResult(terminalTool { readFile(args) })
+                "read_file" -> textResult(terminalTool {
+                    userBlockedPathError(args.optString("path"), "读取")?.let { error ->
+                        return@terminalTool error
+                    }
+                    readFile(args)
+                })
                 "write_file" -> textResult(terminalTool {
+                    userBlockedPathError(args.optString("path"), "写入")?.let { error ->
+                        return@terminalTool error
+                    }
                     AgentProtectedPathPolicy.violationForWrite(args.optString("path"))?.let { violation ->
                         return@terminalTool errorResult(
                             code = "PROTECTED_PATH_WRITE_DENIED",
@@ -211,7 +224,12 @@ internal class AgentLocalTools(
                     }
                     writeFile(args)
                 })
-                "list_directory" -> textResult(terminalTool { listDirectory(args) })
+                "list_directory" -> textResult(terminalTool {
+                    userBlockedPathError(args.optString("path"), "列出目录")?.let { error ->
+                        return@terminalTool error
+                    }
+                    listDirectory(args)
+                })
                 "memory_get" -> textResult(memoryGet(args))
                 "memory_write" -> textResult(memoryWrite(args))
                 "skills_list" -> textResult(skillsList(args))
@@ -687,10 +705,7 @@ internal class AgentLocalTools(
 
     private fun runCommand(args: JSONObject): String {
         AgentProtectedPathPolicy.violationForCommand(args.optString("command"))?.let { violation ->
-            return errorResult(
-                code = "PROTECTED_PATH_WRITE_DENIED",
-                message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
-            )
+            return commandDenialError(violation)
         }
         return terminalController.runCommand(
             command = args.optString("command"),
@@ -703,10 +718,7 @@ internal class AgentLocalTools(
         val action = args.optString("action", "open_and_exec")
         if (action == "open_and_exec" || action == "exec") {
             AgentProtectedPathPolicy.violationForCommand(args.optString("command"))?.let { violation ->
-                return errorResult(
-                    code = "PROTECTED_PATH_WRITE_DENIED",
-                    message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
-                )
+                return commandDenialError(violation)
             }
         }
         return terminalController.terminalAction(
@@ -726,6 +738,29 @@ internal class AgentLocalTools(
             taskId = args.optString("task_id").ifBlank { null },
         )
     }
+
+    private fun userBlockedPathError(rawPath: String, action: String): String? {
+        if (!AgentProtectedPathPolicy.isUserBlocked(rawPath)) return null
+        return errorResult(
+            code = "USER_BLOCKED_PATH_DENIED",
+            message = "路径「$rawPath」已被用户在设置中禁止 AI 访问或修改，本次$action未执行。" +
+                "这是用户主动配置的限制，请勿重试或尝试绕过；如需操作请让用户先在设置中移除该路径。",
+        )
+    }
+
+    private fun commandDenialError(violation: String): String =
+        if (violation.startsWith("USER_BLOCKED_PATH_DENIED")) {
+            errorResult(
+                code = "USER_BLOCKED_PATH_DENIED",
+                message = "命令涉及已被用户禁止访问的路径（${violation.substringAfter(':')}），已拦截执行。" +
+                    "这是用户主动配置的限制，请勿重试或尝试绕过。",
+            )
+        } else {
+            errorResult(
+                code = "PROTECTED_PATH_WRITE_DENIED",
+                message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
+            )
+        }
 
     private fun readFile(args: JSONObject): String =
         terminalController.readFile(
