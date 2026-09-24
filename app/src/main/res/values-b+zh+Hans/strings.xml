@@ -291,6 +291,16 @@
   <string name="ui_eta_system_assistant_003e9b">数字助理应用</string>
   <string name="ui_lsposed_service_is_not_connected_44734d">LSPosed 服务未连接</string>
   <string name="ui_linux_tool_environment_314d22">Linux 工具环境</string>
+
+  <string name="ui_custom_linux_tools_title_9f4b12">自定义 Linux 工具</string>
+  <string name="ui_custom_linux_tools_summary_2a6d57">定义固定命令，AI 可在 Linux 环境中调用</string>
+  <string name="ui_custom_linux_tools_count_71c3e8">已配置 %1$d 个自定义工具</string>
+  <string name="ui_custom_linux_tools_none_45d0f1">暂无自定义工具，点击下方按钮新增</string>
+  <string name="ui_custom_linux_tool_add_e83b62">＋ 新增工具</string>
+  <string name="ui_custom_linux_tool_name_b1d94c">名称（字母、数字、下划线）</string>
+  <string name="ui_custom_linux_tool_desc_a57e30">描述（告诉 AI 何时使用）</string>
+  <string name="ui_custom_linux_tool_command_c2f68d">命令，可用 {args} 占位参数</string>
+  <string name="ui_custom_linux_tool_remove_f9a217">删除该工具</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">MEMORY.md 的全部内容将被删除，记忆开关保持当前状态。</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider 不存在</string>
   <string name="ui_search_in_one_turn_179584">一圈即搜</string>

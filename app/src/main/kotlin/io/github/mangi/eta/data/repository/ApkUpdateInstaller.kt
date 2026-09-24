@@ -19,7 +19,7 @@ import okhttp3.Request
 internal object ApkUpdateInstaller {
 
     private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .callTimeout(30, TimeUnit.MINUTES)
         .build()
@@ -108,8 +108,9 @@ internal object ApkUpdateInstaller {
     /**
      * 通过 PackageInstaller 会话安装，可靠性优于 ACTION_VIEW 跳转：
      * 直接拉起系统安装确认界面，失败时回退到文件管理器方式。
+     * 全程在 IO 线程执行，避免整包拷贝阻塞主线程导致应用无响应。
      */
-    fun install(context: Context, file: File) {
+    suspend fun install(context: Context, file: File) = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         if (!file.isFile || file.length() <= 0L) {
             throw IllegalStateException("install_apk_missing")

@@ -80,7 +80,13 @@ internal object AgentToolRequirements {
 
     val toolNames: Set<String> get() = definitions.keys
 
-    fun find(name: String): LocalToolRequirement? = definitions[name]
+    private val dynamicDefinitions = java.util.concurrent.ConcurrentHashMap<String, LocalToolRequirement>()
+
+    fun registerDynamic(name: String, requirement: LocalToolRequirement) {
+        if (name !in definitions) dynamicDefinitions[name] = requirement
+    }
+
+    fun find(name: String): LocalToolRequirement? = definitions[name] ?: dynamicDefinitions[name]
 
     fun rootRequirement(name: String): RootRequirement =
         requireNotNull(find(name)) { "Missing tool requirements: $name" }.rootRequirement

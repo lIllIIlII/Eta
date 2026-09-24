@@ -32,6 +32,7 @@ internal object Prefs {
         const val AGENT_PHONE_CONTROL_APPROVAL = "agent_phone_control_approval"
         const val AGENT_BLOCK_FILE_ACCESS = "agent_block_file_access"
         const val AGENT_BLOCKED_FILE_PATHS = "agent_blocked_file_paths"
+        const val AGENT_CUSTOM_LINUX_TOOLS = "agent_custom_linux_tools"
         const val AGENT_RUNTIME_CONFIG_JSON = "agent_runtime_config_json"
 
         val BOOLEAN_DEFAULTS: Map<String, Boolean> = mapOf(

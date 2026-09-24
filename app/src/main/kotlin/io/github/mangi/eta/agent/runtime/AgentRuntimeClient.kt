@@ -78,12 +78,7 @@ internal class AgentRuntimeClient(
             return resultRef.get()?.let(AgentRuntimeWire::runResultFromBundle) ?: AgentRuntimeWire.RunResult("", false, "", "Agent Runtime 未返回结果")
         } catch (interrupted: InterruptedException) {
             Thread.currentThread().interrupt()
-            runCatching {
-                val cancelMessage = Message.obtain(null, AgentRuntimeWire.MSG_CANCEL)
-                cancelMessage.data = AgentRuntimeWire.ackBundle(request.runId)
-                serviceMessenger.send(cancelMessage)
-            }
-            return AgentRuntimeWire.RunResult(request.runId, false, "", "Agent Runtime 等待被中断", contextSnapshotRef = request.runId)
+            return AgentRuntimeWire.RunResult(request.runId, false, "", AGENT_RUN_DETACHED, contextSnapshotRef = request.runId)
         } catch (throwable: Throwable) {
             logger.warn("Agent runtime start request failed: type=${throwable.safeLogType()}")
             return AgentRuntimeWire.RunResult(
@@ -349,5 +344,6 @@ internal class AgentRuntimeClient(
 
     private companion object {
         const val RESPONSE_TIMEOUT_SECONDS = 8L
+        const val AGENT_RUN_DETACHED = "agent_run_detached_background"
     }
 }

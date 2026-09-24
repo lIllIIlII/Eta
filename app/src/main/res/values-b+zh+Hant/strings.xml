@@ -279,6 +279,16 @@
   <string name="ui_eta_system_assistant_003e9b">數位助理應用</string>
   <string name="ui_lsposed_service_is_not_connected_44734d">LSPosed 服務未連線</string>
   <string name="ui_linux_tool_environment_314d22">Linux 工具環境</string>
+
+  <string name="ui_custom_linux_tools_title_9f4b12">自訂 Linux 工具</string>
+  <string name="ui_custom_linux_tools_summary_2a6d57">定義固定命令，AI 可在 Linux 環境中呼叫</string>
+  <string name="ui_custom_linux_tools_count_71c3e8">已設定 %1$d 個自訂工具</string>
+  <string name="ui_custom_linux_tools_none_45d0f1">暫無自訂工具，點擊下方按鈕新增</string>
+  <string name="ui_custom_linux_tool_add_e83b62">＋ 新增工具</string>
+  <string name="ui_custom_linux_tool_name_b1d94c">名稱（字母、數字、底線）</string>
+  <string name="ui_custom_linux_tool_desc_a57e30">描述（告訴 AI 何時使用）</string>
+  <string name="ui_custom_linux_tool_command_c2f68d">命令，可用 {args} 佔位參數</string>
+  <string name="ui_custom_linux_tool_remove_f9a217">刪除該工具</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">MEMORY.md 的全部內容將被刪除，記憶開關保持目前狀態。</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider 不存在</string>
   <string name="ui_search_in_one_turn_179584">圈選搜尋</string>

@@ -165,7 +165,7 @@ internal fun AgentChatBody(
             messages = messages,
             targetMessageId = messageEdit?.takeUnless { it.preserveFollowingMessages }?.targetMessageId,
         ).filterNot { message ->
-            message is AgentMessageUi && message.content.isBlank()
+            message is AgentMessageUi && message.content.isBlank() && !message.isStreaming
         }
     }
     val currentBrowserMessageId = remember(
@@ -404,8 +404,18 @@ internal fun AgentConversationMessages(
         resolveFinalResultMessageIds(visibleMessages, isStreaming = isStreaming)
     }
 
+    val showTailPendingIndicator = isStreaming && when (val tailEntry = timelineEntries.lastOrNull()) {
+        null -> true
+        is AgentTimelineEntry.WorkProcess -> false
+        is AgentTimelineEntry.Message -> when (tailEntry.message) {
+            is AgentMessageUi -> !tailEntry.message.isStreaming || tailEntry.message.content.isNotBlank()
+            is ThinkingMessageUi -> false
+            is ToolActivityMessageUi -> false
+            else -> true
+        }
+    }
     val streamingMarkdownStates = remember { mutableStateMapOf<String, StreamingMarkdownState>() }
-    val bottomItemIndex = timelineEntries.size
+    val bottomItemIndex = timelineEntries.size + if (showTailPendingIndicator) 1 else 0
     val isUserDragging by scrollState.interactionSource.collectIsDraggedAsState()
     val isAtBottom by remember(scrollState) {
         derivedStateOf { !scrollState.canScrollForward }
@@ -655,6 +665,24 @@ internal fun AgentConversationMessages(
                             currentBrowserMessageId = currentBrowserMessageId,
                             retainedStreamingStates = streamingMarkdownStates,
                             modifier = itemModifier,
+                        )
+                    }
+                }
+            }
+            if (showTailPendingIndicator) {
+                item(key = ChatTailPendingIndicatorKey, contentType = "tail_pending_indicator") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 7.dp)
+                            .animateItem(
+                                fadeInSpec = tween(durationMillis = 180),
+                                placementSpec = null,
+                                fadeOutSpec = null,
+                            ),
+                    ) {
+                        AITypingIndicator(
+                            label = stringResource(R.string.reasoning_in_progress),
                         )
                     }
                 }
@@ -930,6 +958,7 @@ private fun AgentChatBottomBar(
 private val ChatBottomFrostHeight = 24.dp
 
 private const val ChatBottomSentinelKey = "agent-chat-bottom-sentinel"
+private const val ChatTailPendingIndicatorKey = "agent-chat-tail-pending-indicator"
 private const val BOTTOM_FOLLOW_RESPONSE_SECONDS = 0.085f
 private const val BOTTOM_FOLLOW_MAX_FRAME_SECONDS = 0.05f
 private const val BOTTOM_FOLLOW_MAX_SPEED_DP_PER_SECOND = 720f

@@ -99,6 +99,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -114,6 +115,7 @@ internal class AgentAppState(
     private val runMessageProjector = AgentRunMessageProjector()
     private val runEventCoalescer = AgentRunEventCoalescer()
     private val runEventFlushJobs = mutableMapOf<String, Job>()
+    private val runScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var currentRunId: String? = null
     private var currentRunJob: Job? = null
     private val persistenceLock = Any()
@@ -665,7 +667,7 @@ internal class AgentAppState(
         } else existing
         updateConversation(conversationId, restored.copy(isStreaming = true, isCompacting = checkpoint.operation == AgentRuntimeWire.OP_COMPACT))
         refreshConversationSummaries()
-        currentRunJob = scope.launch(Dispatchers.IO) {
+        currentRunJob = runScope.launch(Dispatchers.IO) {
             val client = AgentRuntimeClient(appContext, AndroidAgentLogger)
             val outcome = client.attachRun(
                 runId = runId,
@@ -1283,7 +1285,7 @@ internal class AgentAppState(
         refreshConversationSummaries()
         val initialPersistence = persistConversations()
 
-        val preparationJob = scope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+        val preparationJob = runScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
 
             if (!initialPersistence.await()) {
                 withContext(Dispatchers.Main) {
@@ -1398,24 +1400,16 @@ internal class AgentAppState(
             }
         }
         currentRunJob = preparationJob
-        if (!RootAccess.isGranted) {
-            val leaseId = "prepare:$runId"
-            val acquired = AgentExecutionService.acquire(appContext, leaseId) {
-                scope.launch(Dispatchers.Main.immediate) {
-                    if (currentRunId == runId) stopCurrentRun()
-                }
+        val leaseId = "prepare:$runId"
+        val acquired = AgentExecutionService.acquire(appContext, leaseId) {
+            runScope.launch(Dispatchers.Main.immediate) {
+                if (currentRunId == runId) stopCurrentRun()
             }
-            if (!acquired) {
-                preparationJob.cancel()
-                applyRunResult(runId, AgentRuntimeWire.RunResult(
-                    runId = runId,
-                    ok = false,
-                    content = "",
-                    error = appContext.getString(R.string.capability_background_failed),
-                ))
-                return
-            }
+        }
+        if (acquired) {
             preparationJob.invokeOnCompletion { AgentExecutionService.release(leaseId) }
+        } else {
+            AndroidAgentLogger.warn("Execution lease unavailable, run continues without keep-alive")
         }
         preparationJob.start()
     }
@@ -1619,7 +1613,7 @@ internal class AgentAppState(
     fun stopCurrentRun() {
         val runId = currentRunId ?: return
         if (!stopRequestedRunIds.add(runId)) return
-        scope.launch(Dispatchers.IO) {
+        runScope.launch(Dispatchers.IO) {
             AgentRuntimeClient(appContext, AndroidAgentLogger).cancelRun(runId)
         }
     }
@@ -2041,7 +2035,7 @@ internal class AgentAppState(
         persistSupplement: Boolean = true,
     ) {
         if (isReplyRewrite(runId)) {
-            if (event is AgentEvent.RunStarted && runId in stopRequestedRunIds) scope.launch(Dispatchers.IO) {
+            if (event is AgentEvent.RunStarted && runId in stopRequestedRunIds) runScope.launch(Dispatchers.IO) {
                 AgentRuntimeClient(appContext, AndroidAgentLogger).cancelRun(runId)
             }
             return
@@ -2189,7 +2183,7 @@ internal class AgentAppState(
             }
 
             is AgentEvent.RunStarted -> {
-                if (runId in stopRequestedRunIds) scope.launch(Dispatchers.IO) {
+                if (runId in stopRequestedRunIds) runScope.launch(Dispatchers.IO) {
                     AgentRuntimeClient(appContext, AndroidAgentLogger).cancelRun(runId)
                 }
             }

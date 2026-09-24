@@ -145,6 +145,9 @@ internal object AgentModelClient {
                 memoryWritable = roleplayContext == null,
                 capabilities = capabilities,
             )
+            if (config.terminalTools) {
+                AgentCustomLinuxToolCatalog.appendTo(tools)
+            }
             for (index in 0 until additionalTools.length()) {
                 tools.put(additionalTools.opt(index))
             }

@@ -11,6 +11,7 @@ import io.github.mangi.eta.agent.device.DeviceControlUnavailableException
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.device.RootShellDeviceController
 import io.github.mangi.eta.agent.device.BoundedRootCommandExecutor
+import io.github.mangi.eta.agent.model.AgentCustomLinuxTool
 import io.github.mangi.eta.agent.model.AgentModelClient
 import io.github.mangi.eta.agent.model.AgentScreenObservationContract
 import io.github.mangi.eta.agent.model.AgentSensitiveToolPolicy
@@ -224,12 +225,19 @@ internal class AgentLocalTools(
                 "skills_list_curated" -> textResult(skillsListCurated())
                 "skills_inspect_github" -> textResult(skillsInspectGitHub(args))
                 "skills_install_from_github" -> textResult(skillsInstallFromGitHub(args))
-                else -> textResult(
-                    errorResult(
-                        code = "UNKNOWN_TOOL",
-                        message = "未知工具：${toolCall.name}"
-                    )
-                )
+                else -> {
+                    val customTool = AgentCustomLinuxTool.find(toolCall.name)
+                    if (customTool != null) {
+                        textResult(terminalTool { runCustomLinuxTool(customTool, args) })
+                    } else {
+                        textResult(
+                            errorResult(
+                                code = "UNKNOWN_TOOL",
+                                message = "未知工具：${toolCall.name}"
+                            )
+                        )
+                    }
+                }
             }
         }.getOrElse { throwable ->
             textResult(
@@ -274,6 +282,36 @@ internal class AgentLocalTools(
             return errorResult("TERMINAL_TOOLS_DISABLED", "请先启用终端/文件工具")
         }
         return block()
+    }
+
+    private fun runCustomLinuxTool(tool: AgentCustomLinuxTool, args: JSONObject): String {
+        val command = tool.buildCommand(args.optString("arguments"))
+        AgentProtectedPathPolicy.violationForCommand(command, userBlockedPaths())?.let { violation ->
+            if (violation.startsWith("BLOCKED_PATH_ACCESS_DENIED")) return blockedPathError(violation)
+            return errorResult(
+                code = "PROTECTED_PATH_WRITE_DENIED",
+                message = "命令涉及受保护的系统路径（$violation），已拦截执行。如需读取请改用不含写入意图的命令。",
+            )
+        }
+        val timeoutMs = args.optLong("timeout_ms", tool.timeoutMs)
+            .coerceIn(AgentCustomLinuxTool.MIN_TIMEOUT_MS, AgentCustomLinuxTool.MAX_TIMEOUT_MS)
+            .toInt()
+        return terminalController.terminalAction(
+            action = "open_and_exec",
+            command = command,
+            cwd = null,
+            timeoutMs = timeoutMs,
+            identity = "",
+            mergeStderr = true,
+            sessionId = null,
+            jobId = null,
+            async = false,
+            offsetChars = 0,
+            maxChars = 12_000,
+            closeIfDone = false,
+            environment = "linux",
+            taskId = null,
+        )
     }
 
     private fun fileVisionTool(block: () -> AgentModelClient.ToolResult): AgentModelClient.ToolResult {

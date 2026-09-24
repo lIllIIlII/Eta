@@ -196,7 +196,7 @@ private fun decodeDataUrlBitmap(dataUrl: String): ImageBitmap? {
 }
 
 @Composable
-fun AITypingIndicator(modifier: Modifier = Modifier) {
+fun AITypingIndicator(modifier: Modifier = Modifier, label: String? = null) {
     val infiniteTransition = rememberInfiniteTransition(label = "dots")
     Row(
         modifier = modifier,
@@ -214,11 +214,38 @@ fun AITypingIndicator(modifier: Modifier = Modifier) {
                 ),
                 label = "alpha"
             )
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 0.68f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, delayMillis = delay, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "scale"
+            )
             Box(
                 modifier = Modifier
                     .size(6.dp)
-                    .graphicsLayer(alpha = alpha)
+                    .graphicsLayer(alpha = alpha, scaleX = scale, scaleY = scale)
                     .background(MiuixTheme.colorScheme.onSurfaceVariantSummary, CircleShape)
+            )
+        }
+        if (!label.isNullOrBlank()) {
+            Spacer(modifier = Modifier.width(8.dp))
+            val labelAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.34f,
+                targetValue = 0.92f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1100, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "label_alpha"
+            )
+            Text(
+                text = label,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                modifier = Modifier.graphicsLayer(alpha = labelAlpha),
             )
         }
     }
@@ -748,6 +775,7 @@ private fun AgentMessageBlock(
         when {
             message.content.isBlank() && message.isStreaming -> {
                 AITypingIndicator(
+                    label = stringResource(R.string.reasoning_in_progress),
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }

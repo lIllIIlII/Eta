@@ -6,12 +6,22 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.Dashboard
@@ -48,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -59,6 +70,7 @@ import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.accessibility.AccessibilityProtectionClient
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
+import io.github.mangi.eta.agent.model.AgentCustomLinuxTool
 import io.github.mangi.eta.config.PowerAssistantTarget
 import io.github.mangi.eta.config.Prefs
 import io.github.mangi.eta.data.repository.ApkUpdateInstaller
@@ -82,6 +94,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownItem
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
@@ -127,6 +140,10 @@ internal fun SettingsScreen(
     var blockedPathsDraft by remember { mutableStateOf(Prefs.localAgentString(Prefs.Keys.AGENT_BLOCKED_FILE_PATHS)) }
     var blockedPathsSaved by remember { mutableStateOf(Prefs.localAgentString(Prefs.Keys.AGENT_BLOCKED_FILE_PATHS)) }
     var blockFileAccessEnabled by remember { mutableStateOf(Prefs.isEnabled(Prefs.Keys.AGENT_BLOCK_FILE_ACCESS)) }
+    var showCustomToolsDialog by remember { mutableStateOf(false) }
+    var customToolsDraft by remember {
+        mutableStateOf(AgentCustomLinuxTool.parseAll())
+    }
     val currentVersionName = remember { AppUpdateChecker.currentVersion(context) }
     val openAssistantSettings: () -> Unit = {
         val failed = runCatching {
@@ -377,6 +394,27 @@ internal fun SettingsScreen(
                             )
                         },
                         onClick = { onNavigate(AppRoute.LinuxEnvironment) },
+                    )
+
+                    ArrowPreference(
+                        title = stringResource(R.string.ui_custom_linux_tools_title_9f4b12),
+                        summary = if (customToolsDraft.isEmpty()) {
+                            stringResource(R.string.ui_custom_linux_tools_summary_2a6d57)
+                        } else {
+                            stringResource(
+                                R.string.ui_custom_linux_tools_count_71c3e8,
+                                customToolsDraft.size,
+                            )
+                        },
+                        startAction = {
+                            PreferenceIcon(
+                                icon = Icons.Rounded.Extension,
+                            )
+                        },
+                        onClick = {
+                            customToolsDraft = AgentCustomLinuxTool.parseAll()
+                            showCustomToolsDialog = true
+                        },
                     )
                 }
             }
@@ -801,6 +839,93 @@ internal fun SettingsScreen(
             }
         }
 
+        if (showCustomToolsDialog) {
+            WindowDialog(
+                show = true,
+                title = stringResource(R.string.ui_custom_linux_tools_title_9f4b12),
+                summary = stringResource(R.string.ui_custom_linux_tools_summary_2a6d57),
+                onDismissRequest = { showCustomToolsDialog = false },
+            ) {
+                if (customToolsDraft.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.ui_custom_linux_tools_none_45d0f1),
+                        fontSize = MiuixTheme.textStyles.body2.fontSize,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(vertical = 10.dp),
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 360.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        customToolsDraft.forEachIndexed { index, tool ->
+                            CustomLinuxToolDraftEditor(
+                                tool = tool,
+                                onNameChange = { value ->
+                                    customToolsDraft = customToolsDraft.toMutableList().also { list ->
+                                        list[index] = list[index].copy(name = value)
+                                    }
+                                },
+                                onDescriptionChange = { value ->
+                                    customToolsDraft = customToolsDraft.toMutableList().also { list ->
+                                        list[index] = list[index].copy(description = value)
+                                    }
+                                },
+                                onCommandChange = { value ->
+                                    customToolsDraft = customToolsDraft.toMutableList().also { list ->
+                                        list[index] = list[index].copy(command = value)
+                                    }
+                                },
+                                onRemove = {
+                                    customToolsDraft = customToolsDraft.toMutableList().also { list ->
+                                        list.removeAt(index)
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.ui_custom_linux_tool_add_e83b62),
+                    fontSize = MiuixTheme.textStyles.body1.fontSize,
+                    color = MiuixTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .clickable {
+                            customToolsDraft = customToolsDraft + AgentCustomLinuxTool(
+                                name = "",
+                                description = "",
+                                command = "",
+                                timeoutMs = AgentCustomLinuxTool.DEFAULT_TIMEOUT_MS,
+                            )
+                        },
+                )
+                MiuixDialogActions(
+                    confirmText = stringResource(R.string.action_confirm),
+                    onCancel = { showCustomToolsDialog = false },
+                    onConfirm = {
+                        val saved = Prefs.setLocalAgentString(
+                            Prefs.Keys.AGENT_CUSTOM_LINUX_TOOLS,
+                            customToolsJson(customToolsDraft),
+                        )
+                        if (saved) {
+                            customToolsDraft = AgentCustomLinuxTool.parseAll()
+                            showCustomToolsDialog = false
+                        } else {
+                            Toast.makeText(
+                                context.applicationContext,
+                                context.getString(R.string.settings_write_failed),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    },
+                )
+            }
+        }
+
         SystemizerConfirmDialog(
             show = showSystemizerDialog,
             installing = installingSystemizer,
@@ -1056,3 +1181,67 @@ private fun SystemizerInstallResult.toToastMessage(context: Context): String =
             ?.let { "$message：$it" }
             ?: message
     }
+
+@Composable
+private fun CustomLinuxToolDraftEditor(
+    tool: AgentCustomLinuxTool,
+    onNameChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onCommandChange: (String) -> Unit,
+    onRemove: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextField(
+                value = tool.name,
+                onValueChange = onNameChange,
+                label = stringResource(R.string.ui_custom_linux_tool_name_b1d94c),
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.ui_custom_linux_tool_remove_f9a217),
+                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .size(20.dp)
+                    .clickable(onClick = onRemove),
+            )
+        }
+        TextField(
+            value = tool.description,
+            onValueChange = onDescriptionChange,
+            label = stringResource(R.string.ui_custom_linux_tool_desc_a57e30),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+        TextField(
+            value = tool.command,
+            onValueChange = onCommandChange,
+            label = stringResource(R.string.ui_custom_linux_tool_command_c2f68d),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+    }
+}
+
+private fun customToolsJson(tools: List<AgentCustomLinuxTool>): String {
+    if (tools.isEmpty()) return ""
+    val array = org.json.JSONArray()
+    tools.forEach { tool ->
+        if (!tool.isValid()) return@forEach
+        array.put(
+            org.json.JSONObject()
+                .put("name", tool.name.trim())
+                .put("description", tool.description.trim())
+                .put("command", tool.command.trim())
+                .put("timeout_ms", tool.timeoutMs)
+        )
+    }
+    return if (array.length() == 0) "" else array.toString()
+}
