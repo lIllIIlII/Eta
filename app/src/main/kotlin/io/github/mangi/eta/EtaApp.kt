@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import io.github.mangi.eta.agent.cloud.CloudSyncService
+import io.github.mangi.eta.agent.localserver.LocalChatServerService
 import io.github.mangi.eta.agent.skill.SkillRuntime
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.terminal.TerminalRuntime
@@ -54,6 +55,13 @@ class EtaApp : Application(), XposedServiceHelper.OnServiceListener {
         ProviderRepository.init(this)
         McpServerRepository.init(this)
         XposedServiceHelper.registerListener(this)
+        applicationScope.launch {
+            runCatching {
+                if (SettingsDataStore.localChatServerEnabled()) {
+                    LocalChatServerService.start(this@EtaApp)
+                }
+            }
+        }
         applicationScope.launch {
             LinuxEnvironmentSettingsRepository.initialize(this@EtaApp)
             runCatching {

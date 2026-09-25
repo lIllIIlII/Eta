@@ -1279,4 +1279,22 @@
     <string name="tool_approval_hint">Tap the shield icon above the input box to stop asking next time</string>
     <string name="tool_approval_allow">Allow</string>
     <string name="tool_approval_deny">Deny</string>
+    <string name="local_chat_server_channel">Local chat history server</string>
+    <string name="local_chat_server_title">Local IP chat history server</string>
+    <string name="local_chat_server_summary">Starts automatically with the app; devices on the same network can view all chat history, and ongoing conversations stay alive in background</string>
+    <string name="local_chat_server_summary_active">Running at http://%1$s — open this address in a browser from any device in the same network to view chat history</string>
+    <string name="local_chat_server_notification_title">Eta local chat server running</string>
+    <string name="local_chat_server_notification_starting">Preparing local server…</string>
+    <string name="local_chat_server_notification_text">Visit http://%1$s to view chat history</string>
+    <string name="provider_config_transfer_title">Model config transfer</string>
+    <string name="provider_config_export">Export model config JSON</string>
+    <string name="provider_config_export_summary">Export model APIs, API keys (including fallback keys) and model lists as a JSON file</string>
+    <string name="provider_config_import">Import model config JSON</string>
+    <string name="provider_config_import_summary">Merge model config from a JSON file into the current list</string>
+    <string name="provider_config_working">Working…</string>
+    <string name="provider_config_exported">Exported %1$d model configs (%2$d models)</string>
+    <string name="provider_config_imported">Imported %1$d model configs (%2$d models)</string>
+    <string name="provider_config_import_confirm_title">Import model config</string>
+    <string name="provider_config_import_confirm_summary">Providers in the file will be merged into the current list. Entries with the same ID will be overwritten. Continue?</string>
+    <string name="provider_config_failed">Operation failed</string>
 </resources>

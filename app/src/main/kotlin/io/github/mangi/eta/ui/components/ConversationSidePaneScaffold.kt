@@ -408,6 +408,7 @@ private fun ConversationPanePanel(
                         items(
                             items = group.items,
                             key = { it.id },
+                            contentType = { "conversation_row" },
                         ) { conversation ->
                             ConversationTextRow(
                                 conversation = conversation,

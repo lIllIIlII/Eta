@@ -77,6 +77,9 @@ import io.github.mangi.eta.data.repository.ApkUpdateInstaller
 import io.github.mangi.eta.data.repository.AppUpdateChecker
 import io.github.mangi.eta.data.repository.ProviderRepository
 import io.github.mangi.eta.data.repository.RuntimeConfigRepository
+import io.github.mangi.eta.agent.localserver.LocalChatServer
+import io.github.mangi.eta.agent.localserver.LocalChatServerService
+import io.github.mangi.eta.data.datastore.SettingsDataStore
 import io.github.mangi.eta.systemizer.GoogleAppSystemizerInstaller
 import io.github.mangi.eta.systemizer.RootManager
 import io.github.mangi.eta.systemizer.SystemizerInstallResult
@@ -623,6 +626,28 @@ internal fun SettingsScreen(
                             )
                         },
                         onClick = { onNavigate(AppRoute.CloudSync) },
+                    )
+
+                    val localServerEnabled by SettingsDataStore.localChatServerEnabledFlow()
+                        .collectAsState(initial = true)
+                    SwitchPreference(
+                        title = stringResource(R.string.local_chat_server_title),
+                        summary = if (localServerEnabled && LocalChatServer.isRunning && LocalChatServer.boundEndpoint.isNotBlank()) {
+                            stringResource(R.string.local_chat_server_summary_active, LocalChatServer.boundEndpoint)
+                        } else {
+                            stringResource(R.string.local_chat_server_summary)
+                        },
+                        checked = localServerEnabled,
+                        onCheckedChange = { enabled ->
+                            coroutineScope.launch {
+                                SettingsDataStore.setLocalChatServerEnabled(enabled)
+                                if (enabled) {
+                                    LocalChatServerService.start(context)
+                                } else {
+                                    LocalChatServerService.stop(context)
+                                }
+                            }
+                        },
                     )
                 }
             }

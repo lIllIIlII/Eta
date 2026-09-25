@@ -20,11 +20,8 @@ captures/
 output-metadata.json
 *.hprof
 
-# 日志与本地凭据
+# 日志
 *.log
-*.jks
-*.keystore
-keystore.properties
 google-services.json
 
 # 本地配置和临时分析产物

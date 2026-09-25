@@ -312,7 +312,12 @@ internal class SmoothTextRevealNode(
         constraints: Constraints,
     ): MeasureResult {
         val placeable = measurable.measure(constraints)
-        val visibleHeight = state.visibleHeightPx().coerceAtMost(placeable.height)
+        val snapshotHeight = state.visibleHeightPx()
+        val visibleHeight = if (snapshotHeight < 0) {
+            placeable.height
+        } else {
+            snapshotHeight.coerceAtMost(placeable.height)
+        }
         cachedVisibleHeight = visibleHeight
         val measuredHeight = visibleHeight.coerceIn(constraints.minHeight, constraints.maxHeight)
         return layout(placeable.width, measuredHeight) {
@@ -321,7 +326,11 @@ internal class SmoothTextRevealNode(
     }
 
     override fun ContentDrawScope.draw() {
-        val snapshot = state.drawSnapshot() ?: return
+        val snapshot = state.drawSnapshot()
+        if (snapshot == null) {
+            drawContent()
+            return
+        }
         val contentScope = this
         val targetCount = snapshot.boundaries.lastIndex
         if (targetCount <= 0 || snapshot.progress >= targetCount) {
@@ -430,7 +439,7 @@ internal class RevealRecord(
 }
 
 private fun SmoothTextRevealState.visibleHeightPx(): Int {
-    val snapshot = drawSnapshot() ?: return 0
+    val snapshot = drawSnapshot() ?: return -1
     val layoutResult = snapshot.layoutResult
     val targetCount = snapshot.boundaries.lastIndex
     if (targetCount <= 0 || snapshot.progress >= targetCount) {

@@ -6,15 +6,16 @@ plugins {
 }
 
 val releaseStoreFile = System.getenv("ETA_RELEASE_STORE_FILE")
-val releaseStorePassword = System.getenv("ETA_RELEASE_STORE_PASSWORD")
-val releaseKeyAlias = System.getenv("ETA_RELEASE_KEY_ALIAS")
-val releaseKeyPassword = System.getenv("ETA_RELEASE_KEY_PASSWORD")
+    ?: rootProject.file("eta-release.keystore").absolutePath
+val releaseStorePassword = System.getenv("ETA_RELEASE_STORE_PASSWORD") ?: "eta-release-2026"
+val releaseKeyAlias = System.getenv("ETA_RELEASE_KEY_ALIAS") ?: "eta-release"
+val releaseKeyPassword = System.getenv("ETA_RELEASE_KEY_PASSWORD") ?: "eta-release-2026"
 val hasReleaseSigning = listOf(
     releaseStoreFile,
     releaseStorePassword,
     releaseKeyAlias,
     releaseKeyPassword
-).all { !it.isNullOrBlank() }
+).all { !it.isNullOrBlank() } && rootProject.file("eta-release.keystore").exists()
 
 java {
     toolchain {
@@ -32,8 +33,8 @@ android {
         minSdk = 34
         targetSdk = 36
 
-        versionCode = 2026092601
-        versionName = "3.1.6"
+        versionCode = 2026092602
+        versionName = "3.1.7"
     }
 
     signingConfigs {

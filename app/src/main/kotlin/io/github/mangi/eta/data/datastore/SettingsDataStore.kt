@@ -42,6 +42,7 @@ internal object SettingsDataStore {
     private val APPEARANCE_PREDICTIVE_BACK_ENABLED =
         booleanPreferencesKey("appearance_predictive_back_enabled")
     private val APPEARANCE_INTERFACE_SCALE = floatPreferencesKey("appearance_interface_scale")
+    private val LOCAL_CHAT_SERVER_ENABLED = booleanPreferencesKey("local_chat_server_enabled")
     private const val SELECTED_MODEL_BY_PROVIDER_PREFIX = "selected_model_id_by_provider."
 
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = STORE_NAME)
@@ -188,6 +189,38 @@ internal object SettingsDataStore {
     suspend fun setMemoryAutoUpdateEnabled(enabled: Boolean) {
         ensureInitialized()
         dataStore.edit { prefs -> prefs[MEMORY_AUTO_UPDATE_ENABLED] = enabled }
+    }
+
+    fun localChatServerEnabledFlow(): Flow<Boolean> {
+        ensureInitialized()
+        return dataStore.data
+            .catch { cause ->
+                if (cause is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw cause
+                }
+            }
+            .map { prefs -> prefs[LOCAL_CHAT_SERVER_ENABLED] ?: true }
+    }
+
+    suspend fun localChatServerEnabled(): Boolean {
+        ensureInitialized()
+        return dataStore.data
+            .catch { cause ->
+                if (cause is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw cause
+                }
+            }
+            .map { prefs -> prefs[LOCAL_CHAT_SERVER_ENABLED] ?: true }
+            .first()
+    }
+
+    suspend fun setLocalChatServerEnabled(enabled: Boolean) {
+        ensureInitialized()
+        dataStore.edit { prefs -> prefs[LOCAL_CHAT_SERVER_ENABLED] = enabled }
     }
 
     suspend fun setLinuxDistribution(value: String?) {

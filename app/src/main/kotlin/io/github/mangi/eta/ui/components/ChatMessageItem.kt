@@ -758,7 +758,11 @@ private fun AgentMessageBlock(
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     var copied by remember(message.id) { mutableStateOf(false) }
-    val keepStreamingMarkdown = remember(message.id) { message.isStreaming }
+    var streamingStartedLatch by remember(message.id) { mutableStateOf(message.isStreaming) }
+    if (message.isStreaming && !streamingStartedLatch) {
+        streamingStartedLatch = true
+    }
+    val keepStreamingMarkdown = streamingStartedLatch
     var streamingRevealComplete by remember(message.id) {
         mutableStateOf(!keepStreamingMarkdown)
     }
@@ -1077,9 +1081,17 @@ private fun StreamingMarkdown(
         }
     }
 
-    snapshot?.let { parsed ->
+    val parsedSnapshot = snapshot
+    if (parsedSnapshot == null) {
+        Text(
+            text = content,
+            style = chatMarkdownBodyStyle(tone),
+            color = chatMarkdownTextColor(tone),
+            modifier = modifier,
+        )
+    } else {
         Markdown(
-            state = parsed.state,
+            state = parsedSnapshot.state,
             colors = chatMarkdownColors(tone),
             typography = chatMarkdownTypography(tone),
             padding = chatMarkdownPadding(),
@@ -1087,10 +1099,9 @@ private fun StreamingMarkdown(
             components = components,
             animations = markdownAnimations(animateTextSize = { this }),
             modifier = modifier.onGloballyPositioned {
-
                 if (state.restoreState.completeLayout(
                         generation = restoreGeneration,
-                        renderedContent = parsed.originalSource,
+                        renderedContent = parsedSnapshot.originalSource,
                         currentContent = currentContent,
                     )
                 ) {

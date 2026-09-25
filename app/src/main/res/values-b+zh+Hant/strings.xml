@@ -1263,4 +1263,22 @@
   <string name="conversation_export_images">圖片：%1$d 張</string>
   <string name="conversation_export_default_name">對話</string>
   <string name="conversation_exported">已匯出</string>
+  <string name="local_chat_server_channel">本地聊天記錄服務</string>
+  <string name="local_chat_server_title">本地 IP 聊天記錄伺服器</string>
+  <string name="local_chat_server_summary">隨應用自動開啟，無需手動操作；同網絡裝置可存取查看全部聊天記錄，並為背景對話保活</string>
+  <string name="local_chat_server_summary_active">已運行：http://%1$s，同網絡裝置用瀏覽器開啟該地址即可查看全部聊天記錄</string>
+  <string name="local_chat_server_notification_title">Eta 本地聊天記錄服務運行中</string>
+  <string name="local_chat_server_notification_starting">正在準備本地伺服器…</string>
+  <string name="local_chat_server_notification_text">瀏覽器訪問 http://%1$s 查看聊天記錄</string>
+  <string name="provider_config_transfer_title">模型配置遷移</string>
+  <string name="provider_config_export">匯出模型配置 JSON</string>
+  <string name="provider_config_export_summary">將模型 API、API Key（含備用 Key）與模型列表匯出為 JSON 檔案</string>
+  <string name="provider_config_import">匯入模型配置 JSON</string>
+  <string name="provider_config_import_summary">從 JSON 檔案合併匯入模型配置</string>
+  <string name="provider_config_working">處理中…</string>
+  <string name="provider_config_exported">已匯出 %1$d 個模型配置（共 %2$d 個模型）</string>
+  <string name="provider_config_imported">已匯入 %1$d 個模型配置（共 %2$d 個模型）</string>
+  <string name="provider_config_import_confirm_title">匯入模型配置</string>
+  <string name="provider_config_import_confirm_summary">將把檔案中的模型配置合併到目前列表，相同 ID 的配置會被覆蓋，是否繼續？</string>
+  <string name="provider_config_failed">操作失敗</string>
 </resources>

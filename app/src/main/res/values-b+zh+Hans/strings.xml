@@ -1263,4 +1263,22 @@
     <string name="tool_approval_hint">点击输入框上方的盾牌图标，之后不再逐次询问</string>
     <string name="tool_approval_allow">允许</string>
     <string name="tool_approval_deny">拒绝</string>
+    <string name="local_chat_server_channel">本地聊天记录服务</string>
+    <string name="local_chat_server_title">本地 IP 聊天记录服务器</string>
+    <string name="local_chat_server_summary">随应用自动开启，无需手动操作；同网络设备可访问查看全部聊天记录，并为后台对话保活</string>
+    <string name="local_chat_server_summary_active">已运行：http://%1$s，同网络设备用浏览器打开该地址即可查看全部聊天记录</string>
+    <string name="local_chat_server_notification_title">Eta 本地聊天记录服务运行中</string>
+    <string name="local_chat_server_notification_starting">正在准备本地服务器…</string>
+    <string name="local_chat_server_notification_text">浏览器访问 http://%1$s 查看聊天记录</string>
+    <string name="provider_config_transfer_title">模型配置迁移</string>
+    <string name="provider_config_export">导出模型配置 JSON</string>
+    <string name="provider_config_export_summary">将模型 API、API Key（含备用 Key）与模型列表导出为 JSON 文件</string>
+    <string name="provider_config_import">导入模型配置 JSON</string>
+    <string name="provider_config_import_summary">从 JSON 文件合并导入模型配置</string>
+    <string name="provider_config_working">处理中…</string>
+    <string name="provider_config_exported">已导出 %1$d 个模型配置（共 %2$d 个模型）</string>
+    <string name="provider_config_imported">已导入 %1$d 个模型配置（共 %2$d 个模型）</string>
+    <string name="provider_config_import_confirm_title">导入模型配置</string>
+    <string name="provider_config_import_confirm_summary">将把文件中的模型配置合并到当前列表，相同 ID 的配置会被覆盖，是否继续？</string>
+    <string name="provider_config_failed">操作失败</string>
 </resources>
