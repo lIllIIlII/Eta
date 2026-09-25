@@ -43,6 +43,8 @@ sealed interface ProviderSetting {
     val customHeaders: List<CustomHeader>
     val customBody: List<CustomBody>
     val createdAt: Long
+    val fallbackApiKeys: List<String>
+        get() = emptyList()
     val hostedWebSearchEnabled: Boolean
         get() = false
 }
@@ -64,6 +66,7 @@ data class OpenAiCompatibleProviderSetting(
     override val customBody: List<CustomBody> = emptyList(),
     override val createdAt: Long = System.currentTimeMillis(),
     val endpointMode: String = OpenAiEndpointMode.CHAT_COMPLETIONS,
+    override val fallbackApiKeys: List<String> = emptyList(),
     override val hostedWebSearchEnabled: Boolean = false,
 ) : ProviderSetting
 
@@ -83,6 +86,7 @@ data class AnthropicProviderSetting(
     override val customHeaders: List<CustomHeader> = emptyList(),
     override val customBody: List<CustomBody> = emptyList(),
     override val createdAt: Long = System.currentTimeMillis(),
+    override val fallbackApiKeys: List<String> = emptyList(),
     val anthropicVersion: String = DEFAULT_ANTHROPIC_VERSION
 ) : ProviderSetting {
     companion object {
@@ -107,6 +111,7 @@ data class CustomProviderSetting(
     override val customBody: List<CustomBody> = emptyList(),
     override val createdAt: Long = System.currentTimeMillis(),
     val endpointMode: String = OpenAiEndpointMode.CHAT_COMPLETIONS,
+    override val fallbackApiKeys: List<String> = emptyList(),
     override val hostedWebSearchEnabled: Boolean = false,
 ) : ProviderSetting
 
@@ -124,12 +129,15 @@ internal val ProviderSetting.typeLabel: String
         is CustomProviderSetting -> "Custom OpenAI-compatible"
     }
 
+internal val ProviderSetting.effectiveFallbackApiKeys: List<String>
+    get() = fallbackApiKeys.map(String::trim).filter(String::isNotBlank)
+
 internal val ProviderSetting.displayApiKeySummary: String
     get() = when {
         apiKey.isBlank() -> "未填写"
         apiKey.length <= 8 -> "*".repeat(apiKey.length)
         else -> "${apiKey.take(4)}${"*".repeat(apiKey.length - 8)}${apiKey.takeLast(4)}"
-    }
+    } + effectiveFallbackApiKeys.takeIf { it.isNotEmpty() }?.let { " +${it.size}" }.orEmpty()
 
 internal fun ProviderSetting.withModels(models: List<Model>): ProviderSetting =
     when (this) {
@@ -157,6 +165,13 @@ internal fun ProviderSetting.withApiKey(apiKey: String): ProviderSetting =
         is OpenAiCompatibleProviderSetting -> copy(apiKey = apiKey)
         is AnthropicProviderSetting -> copy(apiKey = apiKey)
         is CustomProviderSetting -> copy(apiKey = apiKey)
+    }
+
+internal fun ProviderSetting.withFallbackApiKeys(keys: List<String>): ProviderSetting =
+    when (this) {
+        is OpenAiCompatibleProviderSetting -> copy(fallbackApiKeys = keys)
+        is AnthropicProviderSetting -> copy(fallbackApiKeys = keys)
+        is CustomProviderSetting -> copy(fallbackApiKeys = keys)
     }
 
 internal fun ProviderSetting.selectedOrFirstModel(modelId: String?): Model? =

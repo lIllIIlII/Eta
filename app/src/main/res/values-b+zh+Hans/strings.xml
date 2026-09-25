@@ -301,6 +301,12 @@
   <string name="ui_custom_linux_tool_desc_a57e30">描述（告诉 AI 何时使用）</string>
   <string name="ui_custom_linux_tool_command_c2f68d">命令，可用 {args} 占位参数</string>
   <string name="ui_custom_linux_tool_remove_f9a217">删除该工具</string>
+  <string name="ui_fallback_api_keys_title_3a7c19">备用 API Key（故障转移）</string>
+  <string name="ui_fallback_api_keys_summary_e4d218">当前 Key 遇到认证失败、额度限制或服务异常时，自动切换下一个 Key，对话不中断</string>
+  <string name="ui_fallback_api_keys_hint_51be02">每行填写一个 Key</string>
+  <string name="runtime_notification_channel_name">后台任务</string>
+  <string name="runtime_notification_title">AI 任务后台运行中</string>
+  <string name="runtime_notification_summary">对话正在继续，点击返回查看</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">MEMORY.md 的全部内容将被删除，记忆开关保持当前状态。</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider 不存在</string>
   <string name="ui_search_in_one_turn_179584">一圈即搜</string>

@@ -9,6 +9,7 @@ import org.json.JSONObject
 
 internal class AgentLoop(
     private val config: AgentModelClient.ModelConfig,
+    private var activeConfig: AgentModelClient.ModelConfig = config,
     private val messages: JSONArray,
     private val tools: JSONArray,
     private val provider: AgentProviderClient,
@@ -96,7 +97,7 @@ internal class AgentLoop(
                     try {
                         val response = modelRetry.complete(
                             initialRound = round,
-                            request = ProviderRequest(config, requestMessages, roundTools, sessionId, purpose),
+                            request = ProviderRequest(activeConfig, requestMessages, roundTools, sessionId, purpose),
                             provider = provider,
                             controller = runController,
                             onEvent = onEvent,
@@ -118,6 +119,7 @@ internal class AgentLoop(
                             discardAttemptReasoning = { accumulatedReasoning.setLength(reasoningLengthBeforeRound) },
                         )
                         completedResponse = response
+                        activeConfig = activeConfig.copy(apiKey = response.apiKey)
                         break
                     } catch (failure: AgentModelFailure) {
                         if (failure.code != "CONTEXT_OVERFLOW" || !failure.recoveryAllowed ||

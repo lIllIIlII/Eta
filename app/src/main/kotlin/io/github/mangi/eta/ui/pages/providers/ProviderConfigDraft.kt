@@ -8,6 +8,7 @@ import io.github.mangi.eta.data.model.CustomHeader
 import io.github.mangi.eta.data.model.CustomProviderSetting
 import io.github.mangi.eta.data.model.OpenAiCompatibleProviderSetting
 import io.github.mangi.eta.data.model.ProviderSetting
+import io.github.mangi.eta.data.model.effectiveFallbackApiKeys
 import java.util.UUID
 
 internal data class ProviderHeaderDraft(
@@ -19,6 +20,7 @@ internal data class ProviderConfigDraft(
     val name: String,
     val baseUrl: String,
     val apiKey: String,
+    val fallbackApiKeysText: String,
     val systemPrompt: String,
     val isEnabled: Boolean,
     val endpointMode: String,
@@ -26,12 +28,16 @@ internal data class ProviderConfigDraft(
     val anthropicVersion: String,
     val headers: List<ProviderHeaderDraft> = emptyList(),
 ) {
+    val fallbackApiKeys: List<String>
+        get() = fallbackApiKeysText.lines().map(String::trim).filter(String::isNotBlank)
+
     companion object {
         fun from(provider: ProviderSetting): ProviderConfigDraft = ProviderConfigDraft(
             headers = provider.customHeaders.map { ProviderHeaderDraft(header = it) },
             name = provider.name,
             baseUrl = provider.baseUrl,
             apiKey = provider.apiKey,
+            fallbackApiKeysText = provider.effectiveFallbackApiKeys.joinToString("\n"),
             systemPrompt = provider.systemPrompt.orEmpty(),
             isEnabled = provider.isEnabled,
             endpointMode = when (provider) {
@@ -53,6 +59,7 @@ internal val ProviderConfigDraftSaver = mapSaver(
             "name" to draft.name,
             "baseUrl" to draft.baseUrl,
             "apiKey" to draft.apiKey,
+            "fallbackApiKeysText" to draft.fallbackApiKeysText,
             "systemPrompt" to draft.systemPrompt,
             "isEnabled" to draft.isEnabled,
             "endpointMode" to draft.endpointMode,
@@ -68,6 +75,7 @@ internal val ProviderConfigDraftSaver = mapSaver(
             name = state.getValue("name") as String,
             baseUrl = state.getValue("baseUrl") as String,
             apiKey = state.getValue("apiKey") as String,
+            fallbackApiKeysText = (state["fallbackApiKeysText"] as? String).orEmpty(),
             systemPrompt = state.getValue("systemPrompt") as String,
             isEnabled = state.getValue("isEnabled") as Boolean,
             endpointMode = state.getValue("endpointMode") as String,
@@ -82,6 +90,7 @@ internal fun buildUpdatedProvider(
     name: String,
     baseUrl: String,
     apiKey: String,
+    fallbackApiKeys: List<String>,
     systemPrompt: String,
     isEnabled: Boolean,
     endpointMode: String,
@@ -96,6 +105,7 @@ internal fun buildUpdatedProvider(
             name = name.trim(),
             baseUrl = baseUrl.trim(),
             apiKey = apiKey.trim(),
+            fallbackApiKeys = fallbackApiKeys,
             systemPrompt = prompt,
             isEnabled = isEnabled,
             endpointMode = endpointMode,
@@ -106,6 +116,7 @@ internal fun buildUpdatedProvider(
             name = name.trim(),
             baseUrl = baseUrl.trim(),
             apiKey = apiKey.trim(),
+            fallbackApiKeys = fallbackApiKeys,
             systemPrompt = prompt,
             isEnabled = isEnabled,
             endpointMode = endpointMode,
@@ -116,6 +127,7 @@ internal fun buildUpdatedProvider(
             name = name.trim(),
             baseUrl = baseUrl.trim(),
             apiKey = apiKey.trim(),
+            fallbackApiKeys = fallbackApiKeys,
             systemPrompt = prompt,
             isEnabled = isEnabled,
             anthropicVersion = anthropicVersion.trim().ifBlank { AnthropicProviderSetting.DEFAULT_ANTHROPIC_VERSION },

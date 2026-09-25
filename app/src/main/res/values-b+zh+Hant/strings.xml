@@ -289,6 +289,12 @@
   <string name="ui_custom_linux_tool_desc_a57e30">描述（告訴 AI 何時使用）</string>
   <string name="ui_custom_linux_tool_command_c2f68d">命令，可用 {args} 佔位參數</string>
   <string name="ui_custom_linux_tool_remove_f9a217">刪除該工具</string>
+  <string name="ui_fallback_api_keys_title_3a7c19">備用 API Key（故障轉移）</string>
+  <string name="ui_fallback_api_keys_summary_e4d218">當前 Key 遇到認證失敗、額度限制或服務異常時，自動切換下一個 Key，對話不中斷</string>
+  <string name="ui_fallback_api_keys_hint_51be02">每行填寫一個 Key</string>
+  <string name="runtime_notification_channel_name">背景任務</string>
+  <string name="runtime_notification_title">AI 任務背景執行中</string>
+  <string name="runtime_notification_summary">對話正在繼續，點擊返回查看</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">MEMORY.md 的全部內容將被刪除，記憶開關保持目前狀態。</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider 不存在</string>
   <string name="ui_search_in_one_turn_179584">圈選搜尋</string>

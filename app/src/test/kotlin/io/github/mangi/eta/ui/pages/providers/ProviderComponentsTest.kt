@@ -18,6 +18,7 @@ class ProviderComponentsTest {
             name = "临时提供商",
             baseUrl = "https://api.example.com/v1",
             apiKey = "temporary-key",
+            fallbackApiKeysText = "fallback-key-1\nfallback-key-2",
             systemPrompt = "临时提示词",
             isEnabled = false,
             endpointMode = "responses",

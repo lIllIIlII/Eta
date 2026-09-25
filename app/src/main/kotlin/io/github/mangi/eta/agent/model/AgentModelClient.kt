@@ -260,6 +260,7 @@ internal object AgentModelClient {
         val providerSourceType: String = "",
         val baseUrl: String,
         val apiKey: String,
+        val fallbackApiKeys: List<String> = emptyList(),
         val model: String,
         val modelDisplayName: String = "",
         val contextWindow: Int? = null,

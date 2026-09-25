@@ -319,6 +319,12 @@
   <string name="ui_custom_linux_tool_desc_a57e30">Description (tells the AI when to use it)</string>
   <string name="ui_custom_linux_tool_command_c2f68d">Command, {args} as the argument placeholder</string>
   <string name="ui_custom_linux_tool_remove_f9a217">Remove this tool</string>
+  <string name="ui_fallback_api_keys_title_3a7c19">Backup API keys (failover)</string>
+  <string name="ui_fallback_api_keys_summary_e4d218">When the current key hits auth errors, quota limits or provider outages, the app automatically switches to the next key and keeps the conversation running</string>
+  <string name="ui_fallback_api_keys_hint_51be02">One key per line</string>
+  <string name="runtime_notification_channel_name">Background tasks</string>
+  <string name="runtime_notification_title">AI task running in the background</string>
+  <string name="runtime_notification_summary">The conversation keeps going. Tap to return.</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">The entire contents of MEMORY.md will be deleted and the memory switch will remain in its current state.</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider does not exist</string>
   <string name="ui_search_in_one_turn_179584">Circle to Search</string>

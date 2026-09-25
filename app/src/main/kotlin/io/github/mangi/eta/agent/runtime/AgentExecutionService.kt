@@ -49,10 +49,20 @@ internal class AgentExecutionService : Service() {
         }
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        if (!leases.isEmpty()) {
+            runCatching {
+                startService(Intent(this, AgentExecutionService::class.java))
+            }
+        }
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             stopTasks()
         } else {
+            startRejected = false
             ensureForeground()
             refreshNotification()
         }
@@ -64,12 +74,18 @@ internal class AgentExecutionService : Service() {
     override fun onDestroy() {
         if (instance === this) instance = null
 
-        stopQueue.close(leases.drainOwner(owner))
+        leases.releaseOwner(owner)
+        stopQueue.close(emptyList())
         super.onDestroy()
     }
 
     private fun stopTasks(startFailed: Boolean = false) {
-        val callbacks = leases.drain(startFailed)
+        val callbacks = if (startFailed) {
+            leases.clearSilently(keepBoundFallback = true)
+            emptyList()
+        } else {
+            leases.drainUser()
+        }
         stopQueue.submit(callbacks) {
             mainHandler.post { if (instance === this) refreshNotification() }
         }

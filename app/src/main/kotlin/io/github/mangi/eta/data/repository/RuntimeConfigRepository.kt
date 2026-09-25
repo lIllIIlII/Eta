@@ -11,6 +11,7 @@ import io.github.mangi.eta.data.model.OpenAiCompatibleProviderSetting
 import io.github.mangi.eta.data.model.OpenAiEndpointMode
 import io.github.mangi.eta.data.model.ProviderSetting
 import io.github.mangi.eta.data.model.ReasoningEffort
+import io.github.mangi.eta.data.model.effectiveFallbackApiKeys
 import io.github.mangi.eta.data.model.runtimeProviderType
 import io.github.mangi.eta.data.model.selectedOrFirstModel
 import io.github.mangi.eta.data.provider.BuiltinProviders
@@ -117,6 +118,7 @@ internal object RuntimeConfigRepository {
             providerSourceType = sourceType,
             baseUrl = provider.baseUrl.trim(),
             apiKey = provider.apiKey.trim(),
+            fallbackApiKeys = provider.effectiveFallbackApiKeys,
             model = model.modelId.trim(),
             modelDisplayName = model.displayName.trim(),
             contextWindow = model.effectiveContextWindow,

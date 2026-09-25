@@ -259,6 +259,22 @@ private fun ProviderConfigTab(
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TextField(
+                        value = draft.fallbackApiKeysText,
+                        onValueChange = { onDraftChange(draft.copy(fallbackApiKeysText = it)) },
+                        label = stringResource(R.string.ui_fallback_api_keys_title_3a7c19),
+                        minLines = 2,
+                        maxLines = 6,
+                        visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = stringResource(R.string.ui_fallback_api_keys_summary_e4d218),
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
                     if (provider is AnthropicProviderSetting) {
                         Spacer(modifier = Modifier.height(12.dp))
                         TextField(
@@ -330,6 +346,7 @@ private fun ProviderConfigTab(
                                         name = draft.name,
                                         baseUrl = draft.baseUrl,
                                         apiKey = draft.apiKey,
+                                        fallbackApiKeys = draft.fallbackApiKeys,
                                         systemPrompt = draft.systemPrompt,
                                         isEnabled = draft.isEnabled,
                                         endpointMode = draft.endpointMode,
@@ -414,6 +431,7 @@ private fun ProviderConfigTab(
                                 name = draft.name,
                                 baseUrl = draft.baseUrl,
                                 apiKey = draft.apiKey,
+                                fallbackApiKeys = draft.fallbackApiKeys,
                                 systemPrompt = draft.systemPrompt,
                                 isEnabled = draft.isEnabled,
                                 endpointMode = draft.endpointMode,

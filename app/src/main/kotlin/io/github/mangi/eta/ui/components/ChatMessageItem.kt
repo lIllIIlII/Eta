@@ -67,6 +67,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -182,8 +183,13 @@ import top.yukonga.miuix.kmp.squircle.squircleSurface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-internal fun rememberDataUrlBitmap(dataUrl: String) = remember(dataUrl) {
-    decodeDataUrlBitmap(dataUrl)
+internal fun rememberDataUrlBitmap(dataUrl: String): ImageBitmap? {
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, dataUrl) {
+        withContext(Dispatchers.Default) {
+            decodeDataUrlBitmap(dataUrl)
+        }.let { value = it }
+    }
+    return bitmap
 }
 
 private fun decodeDataUrlBitmap(dataUrl: String): ImageBitmap? {
@@ -616,6 +622,15 @@ private fun UserMessageBubble(
                                         .size(100.dp)
                                         .clip(RoundedCornerShape(12.dp)),
                                     contentScale = ContentScale.Crop,
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            MiuixTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                                        ),
                                 )
                             }
                         }

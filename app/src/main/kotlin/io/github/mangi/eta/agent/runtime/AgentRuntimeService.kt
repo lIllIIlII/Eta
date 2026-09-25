@@ -2,9 +2,14 @@ package io.github.mangi.eta.agent.runtime
 
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Handler
@@ -30,6 +35,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.github.mangi.eta.EtaApp
+import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
 import io.github.mangi.eta.agent.media.AgentImageCodec
 import io.github.mangi.eta.agent.model.AgentModelClient
@@ -48,6 +54,7 @@ import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.core.ModuleConfig
 import io.github.mangi.eta.core.safeLogType
 import io.github.mangi.eta.data.repository.RuntimeConfigRepository
+import io.github.mangi.eta.ui.MainActivity
 import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import top.yukonga.miuix.kmp.squircle.LocalSquircleEnabled
@@ -98,6 +105,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
     @Volatile
     private var lastCompletedRunContext: CompletedRunContext? = null
     private val hideToken = Any()
+    private var runtimeForegroundActive = false
 
     override fun onCreate() {
         super.onCreate()
@@ -105,6 +113,13 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        getSystemService(NotificationManager::class.java).createNotificationChannel(
+            NotificationChannel(
+                RUN_NOTIFICATION_CHANNEL,
+                getString(R.string.runtime_notification_channel_name),
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
     }
 
     override fun onBind(intent: Intent): IBinder? {
@@ -113,10 +128,28 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action != ACTION_KEEP_ALIVE || activeSession == null) {
-            stopSelf(startId)
+        when (intent?.action) {
+            ACTION_CANCEL_ACTIVE -> {
+                activeSession?.let { session -> cancelRun(session.runId) }
+                if (activeSession == null) stopSelf(startId)
+            }
+            ACTION_KEEP_ALIVE -> if (activeSession == null) stopSelf(startId)
+            else -> stopSelf(startId)
         }
         return START_NOT_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        if (activeSession?.isTerminal == false) {
+            runCatching {
+                startService(Intent(this, AgentRuntimeService::class.java).setAction(ACTION_KEEP_ALIVE))
+            }.onFailure { throwable ->
+                AndroidAgentLogger.warnThrottled("runtime_task_removed_restart_failed") {
+                    "Agent runtime keep-alive restart failed: type=${throwable.safeLogType()}"
+                }
+            }
+        }
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
@@ -162,6 +195,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         glowParams = null
         windowManager = null
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        demoteFromForeground()
         super.onDestroy()
     }
 
@@ -328,6 +362,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         }
         activeSession = session
         lastCompletedRunContext = null
+        promoteToForeground()
         runCatching {
             startService(Intent(this, AgentRuntimeService::class.java).setAction(ACTION_KEEP_ALIVE))
         }.onFailure { throwable ->
@@ -456,6 +491,7 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
             if (activeSession !== session) return@post
             lastCompletedRunContext = completedContext
             activeSession = null
+            demoteFromForeground()
             runCatching {
                 if (result.ok) {
                     enterFinalState(
@@ -1072,6 +1108,47 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
         stopSelf()
     }
 
+    private fun promoteToForeground() {
+        if (runtimeForegroundActive) return
+        runCatching {
+            startForeground(
+                RUN_NOTIFICATION_ID,
+                runtimeNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+            runtimeForegroundActive = true
+        }.onFailure { throwable ->
+            AndroidAgentLogger.warn("Runtime foreground promotion failed: type=${throwable.safeLogType()}")
+        }
+    }
+
+    private fun demoteFromForeground() {
+        if (!runtimeForegroundActive) return
+        runtimeForegroundActive = false
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+    }
+
+    private fun runtimeNotification(): Notification {
+        val open = PendingIntent.getActivity(
+            this, 0, Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val stop = PendingIntent.getService(
+            this, 2,
+            Intent(this, AgentRuntimeService::class.java).setAction(ACTION_CANCEL_ACTIVE),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return Notification.Builder(this, RUN_NOTIFICATION_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(getString(R.string.runtime_notification_title))
+            .setContentText(getString(R.string.runtime_notification_summary))
+            .setContentIntent(open)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .addAction(Notification.Action.Builder(null, getString(R.string.execution_stop), stop).build())
+            .build()
+    }
+
     private fun isMessageSenderAllowed(msg: Message): Boolean {
         val uid = msg.sendingUid
         if (uid == Process.myUid()) return true
@@ -1106,6 +1183,9 @@ internal class AgentRuntimeService : Service(), LifecycleOwner, SavedStateRegist
 
     private companion object {
         const val ACTION_KEEP_ALIVE = "io.github.mangi.eta.agent.runtime.KEEP_ALIVE"
+        const val ACTION_CANCEL_ACTIVE = "io.github.mangi.eta.agent.runtime.CANCEL_ACTIVE"
+        const val RUN_NOTIFICATION_ID = 1109
+        const val RUN_NOTIFICATION_CHANNEL = "eta_runtime"
         const val HIDE_DELAY_MS = 2_500L
         const val RESULT_REVIEW_DELAY_MS = 120_000L
         const val RESULT_CARD_HEIGHT_RATIO = 0.5f

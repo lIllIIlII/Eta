@@ -49,6 +49,16 @@ internal data class ProviderRequest(
         config.copy(hostedWebSearchEnabled = false, extraBodyJson = "", customBody = emptyList())
     } else config
     val effectiveTools: JSONArray get() = if (purpose.allowsTools) tools else JSONArray()
+
+    val apiKeyPool: List<String> = buildList {
+        config.apiKey.trim().takeIf(String::isNotBlank)?.let(::add)
+        config.fallbackApiKeys.forEach { key -> key.trim().takeIf(String::isNotBlank)?.let(::add) }
+    }.distinct()
+
+    fun withApiKey(apiKey: String): ProviderRequest = copy(
+        config = config.copy(apiKey = apiKey),
+        sessionId = sessionId,
+    )
 }
 
 internal data class ProviderResponse(

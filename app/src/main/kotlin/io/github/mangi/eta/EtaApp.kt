@@ -45,7 +45,9 @@ class EtaApp : Application(), XposedServiceHelper.OnServiceListener {
         RootAccess.initialize(this)
         SettingsDataStore.init(this)
         val predictiveBackEnabled = runBlocking(Dispatchers.IO) {
-            AppearanceSettingsRepository.settings().predictiveBackEnabled
+            kotlinx.coroutines.withTimeoutOrNull(150) {
+                AppearanceSettingsRepository.settings().predictiveBackEnabled
+            } ?: true
         }
         PredictiveBackController.apply(applicationInfo, predictiveBackEnabled)
         AgentMemoryRepository.init(this)

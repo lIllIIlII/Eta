@@ -14,6 +14,7 @@ internal class ExecutionLeaseRegistry {
 
     @Synchronized fun release(id: String) { leases.remove(id) }
     @Synchronized fun count(): Int = leases.size
+    @Synchronized fun isEmpty(): Boolean = leases.isEmpty()
 
     @Synchronized fun attachOwner(owner: Long) {
         activeOwner = owner
@@ -31,6 +32,22 @@ internal class ExecutionLeaseRegistry {
         val owned = leases.filterValues { it.owner == owner }
         owned.keys.forEach(leases::remove)
         return owned.values.map { it.onStop }
+    }
+
+    @Synchronized fun releaseOwner(owner: Long) {
+        if (activeOwner == owner) activeOwner = null
+        leases.entries.removeIf { it.value.owner == owner }
+    }
+
+    @Synchronized fun drainUser(): List<() -> Unit> =
+        leases.values.map { it.onStop }.also { leases.clear() }
+
+    @Synchronized fun clearSilently(keepBoundFallback: Boolean = false) {
+        if (keepBoundFallback) {
+            leases.entries.removeIf { !it.value.allowBoundFallback }
+        } else {
+            leases.clear()
+        }
     }
 
     @Synchronized fun drain(startFailed: Boolean = false): List<() -> Unit> = leases.values
