@@ -2,7 +2,6 @@ package io.github.mangi.eta.agent.accessibility
 
 import android.content.Context
 import android.os.SystemClock
-import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.core.AndroidAgentLogger
 
 object AgentAccessibilityKeeper {
@@ -16,7 +15,7 @@ object AgentAccessibilityKeeper {
                     AccessibilityProtectionClient.ControlStatus.APPLIED
             },
             awaitServiceBinding = ::awaitServiceBinding,
-            protectionAvailable = { EtaApp.serviceInstance != null },
+            protectionAvailable = { false },
         )
         val elapsedMs = SystemClock.elapsedRealtime() - startedAt
         if (result.available) {

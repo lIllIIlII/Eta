@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.github.mangi.eta.data.model.AppearanceAccentColor
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.map
 
 internal object SettingsDataStore {
     private const val STORE_NAME = "eta_settings"
+    const val DEFAULT_LOCAL_CHAT_SERVER_PORT = 8765
 
     private val SELECTED_PROVIDER_ID = stringPreferencesKey("selected_provider_id")
     private val SELECTED_MODEL_ID = stringPreferencesKey("selected_model_id")
@@ -43,6 +45,7 @@ internal object SettingsDataStore {
         booleanPreferencesKey("appearance_predictive_back_enabled")
     private val APPEARANCE_INTERFACE_SCALE = floatPreferencesKey("appearance_interface_scale")
     private val LOCAL_CHAT_SERVER_ENABLED = booleanPreferencesKey("local_chat_server_enabled")
+    private val LOCAL_CHAT_SERVER_PORT = intPreferencesKey("local_chat_server_port")
     private const val SELECTED_MODEL_BY_PROVIDER_PREFIX = "selected_model_id_by_provider."
 
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = STORE_NAME)
@@ -221,6 +224,25 @@ internal object SettingsDataStore {
     suspend fun setLocalChatServerEnabled(enabled: Boolean) {
         ensureInitialized()
         dataStore.edit { prefs -> prefs[LOCAL_CHAT_SERVER_ENABLED] = enabled }
+    }
+
+    suspend fun localChatServerPort(): Int {
+        ensureInitialized()
+        return dataStore.data
+            .catch { cause ->
+                if (cause is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw cause
+                }
+            }
+            .map { prefs -> prefs[LOCAL_CHAT_SERVER_PORT] ?: DEFAULT_LOCAL_CHAT_SERVER_PORT }
+            .first()
+    }
+
+    suspend fun setLocalChatServerPort(port: Int) {
+        ensureInitialized()
+        dataStore.edit { prefs -> prefs[LOCAL_CHAT_SERVER_PORT] = port }
     }
 
     suspend fun setLinuxDistribution(value: String?) {

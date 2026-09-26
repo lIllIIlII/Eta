@@ -33,8 +33,8 @@ android {
         minSdk = 34
         targetSdk = 36
 
-        versionCode = 2026092602
-        versionName = "3.1.7"
+        versionCode = 2026092603
+        versionName = "3.1.8"
     }
 
     signingConfigs {
@@ -84,9 +84,6 @@ android {
             keepDebugSymbols += setOf("**/libproot_exec.so", "**/libproot_loader.so", "**/libeta_pty.so")
         }
         resources {
-
-            merges += "META-INF/xposed/*"
-
             excludes += "META-INF/*.kotlin_module"
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
@@ -106,9 +103,7 @@ android {
 dependencies {
     implementation(libs.commons.compress)
     implementation(libs.xz)
-    compileOnly(libs.libxposed.api)
 
-    implementation(libs.libxposed.service)
     implementation(libs.miuix.ui)
     implementation(libs.miuix.blur)
     implementation(libs.miuix.nav)

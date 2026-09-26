@@ -251,7 +251,7 @@ internal fun ProviderModelsTab(
                                     val chatModels = models.filter(RemoteModelFetcher::isChatCapableModel)
                                     val sync = ModelRepository.syncRemoteModels(provider.id, chatModels)
                                     if (sync.applied) {
-                                        RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                                        RuntimeConfigRepository.syncRuntimeConfig()
                                     }
                                     val filteredCount = models.size - chatModels.size
                                     message = if (!sync.applied) {
@@ -399,7 +399,7 @@ internal fun ProviderModelsTab(
                             onSetCurrent = {
                                 scope.launch {
                                     RuntimeConfigRepository.setSelectedModelId(model.id)
-                                    RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                                    RuntimeConfigRepository.syncRuntimeConfig()
                                 }
                             },
                         )
@@ -462,7 +462,7 @@ internal fun ProviderModelsTab(
                     editorError = null
                     try {
                         val saved = ModelRepository.saveModel(provider.id, updated)
-                        RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                        RuntimeConfigRepository.syncRuntimeConfig()
                         editingModel = null
                         message = context.getString(R.string.provider_model_saved, saved.displayName)
                     } catch (cancelled: CancellationException) {
@@ -501,7 +501,7 @@ internal fun ProviderModelsTab(
                         isMutatingModel = true
                         try {
                             ModelRepository.deleteModel(provider.id, model.id)
-                            RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                            RuntimeConfigRepository.syncRuntimeConfig()
                             message = context.getString(R.string.provider_model_deleted, model.displayName)
                             modelPendingDelete = null
                         } catch (cancelled: CancellationException) {
@@ -544,7 +544,7 @@ internal fun ProviderModelsTab(
                         isMutatingModel = true
                         try {
                             ModelRepository.deleteModels(provider.id, selectedModelIds)
-                            RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                            RuntimeConfigRepository.syncRuntimeConfig()
                             message = context.resources.getQuantityString(
                                 R.plurals.provider_models_deleted,
                                 deletedCount,

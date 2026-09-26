@@ -12,11 +12,11 @@ Eta is an AI agent designed for phones and other mobile devices. It pairs the au
 
 - **System actions:** call Android APIs directly to set alarms, control media playback, adjust volume, and more.
 - **OEM data:** query sources such as Xiaobu Memory, notes, and recording summaries on supported systems with the required permissions.
-- **System entry points:** use Xposed hooks to route the power button and requests from Breeno (Xiaobu) or Super XiaoAI to Eta.
+- **System entry points:** set Eta as the system assistant and start tasks from a familiar entry point.
 
 Eta has its own agent runtime. An agent loop coordinates model requests, tool execution, and feedback, with Skills and MCP available for extensions. **You must supply your own model-provider API key (BYOK)** to use its AI features; you choose the model and provider.
 
-Requires **Android 14 or later**. The app works across phone brands, and core features do not require root. Root and LSPosed extend system access and assistant integration where permissions and ROM compatibility allow.
+Requires **Android 14 or later**. The app works across phone brands, and core features do not require root. Root extends system access where permissions and ROM compatibility allow.
 
 [Download APK](https://github.com/Mangi-11/Eta/releases) · [Getting started](#getting-started) · [Why I built Eta](#why-i-built-eta)
 
@@ -81,18 +81,14 @@ The provider layer supports OpenAI-compatible Chat Completions, the Responses AP
 
 ## System assistant entry points
 
-- **Power-button long press:** choose the default OEM assistant, Gemini, or Eta.
-- **Eta system assistant:** open Eta's text conversation panel from the power button, with screen context and follow-up conversations.
-- **Breeno / Super XiaoAI integration:** keep the familiar OEM assistant entry point while routing requests to Eta and your configured model.
+- **Eta system assistant:** set Eta as the default assistant in system settings and start tasks from a familiar entry point.
 
-Power-button interception requires LSPosed and a supported system.
+## Local chat history server
 
-## Unlocking Gemini and Circle to Search
-
-- **Gemini:** enable system-assistant capabilities, including making the Google app a system app, voice input on the lock screen and while the screen is on, and support for keeping hotword detection working with the screen off.
-- **Circle to Search:** enable the feature and trigger it with a long press on the navigation handle or a two-finger long press on the screen.
-
-These features require LSPosed and a supported system. See [Technical Implementation](docs/TECHNICAL.md) for functionality and compatibility details.
+- **Automatic start:** a LAN HTTP server that starts with the app by default, no manual setup needed.
+- **View history:** devices on the same network can open the shown address in a browser to read all chat history.
+- **Temporary sharing:** multi-select conversations to generate a long image (saved to the gallery and shareable) or a temporary web link (valid for 24 hours by default).
+- **Port management:** open the server page from the Agent browser to view the current address and change the port.
 
 ## Permissions and data
 
@@ -111,7 +107,6 @@ System tools, sensitive reads, sensitive actions, terminal and file access, brow
 
 - **Unrooted devices:** Android 14+ supports chat, browsing, memory, Skills, MCP, the ordinary terminal, and a private workspace. GUI control and personal data access need their respective permissions. Linux is available on supported 64-bit devices.
 - **Rooted devices:** gain access to protected system settings, app management, privileged files, dedicated personal-data searches, root shells, and chroot.
-- **LSPosed with a compatible ROM:** adds OEM assistant integration, system shortcuts, and Google feature enablement. Some features also require root.
 
 Dedicated searches for contacts, SMS messages, and calendar events still require root. See [Device Support](docs/ROOTLESS_SUPPORT.md) for full requirements and validation coverage.
 
@@ -143,7 +138,7 @@ Put OpenClaw or a desktop coding agent in a phone's Linux environment, and it ca
 
 I am both an independent developer and an Android tinkerer. I have no preinstallation deals or proprietary ecosystem to protect, so I am willing to take a more aggressive approach to system integration and make more of the phone's existing capabilities available to a model the user chooses.
 
-That is where Eta does the integration work: Xposed hooks for Breeno, Super XiaoAI, and the power button; direct Android API calls; and dedicated access to sources such as Xiaobu Memory, notes, and recording summaries. Shell and Linux provide the computing environment, while GUI control covers apps without callable interfaces. A shared agent runtime connects these pieces, giving the model both context about the phone and tools to act on it.
+That is where Eta does the integration work: acting as the system assistant, making direct Android API calls, and providing dedicated access to sources such as Xiaobu Memory, notes, and recording summaries. Shell and Linux provide the computing environment, while GUI control covers apps without callable interfaces. A shared agent runtime connects these pieces, giving the model both context about the phone and tools to act on it.
 
 I do not want AI to do everything. If a few taps are faster than waiting for a model, paying for calls, and watching for mistakes, I would rather tap it myself. I want an agent for tasks that benefit from local context, involve repetitive work across apps, or are inconvenient to do by hand. A useful phone agent needs thoughtful integration with the system, local data, and mobile interaction. A long feature list does not tell me whether a product is good to use.
 
@@ -168,14 +163,12 @@ These implementation notes are currently in Chinese:
 - [Device support and permissions](docs/ROOTLESS_SUPPORT.md): unrooted and rooted devices, the file workspace, and background execution.
 - [Technical implementation](docs/TECHNICAL.md): system tools, data retrieval, browser, terminal, and system integration.
 - [Agent Runtime](docs/AGENT_RUNTIME.md): the agent loop, providers, steering, transcripts, and result recovery.
-- [HyperOS system entry points](docs/HYPEROS_SYSTEM_ENTRY.md): power-button and Circle to Search integration, requirements, and validation coverage.
 - [Native terminal components](docs/TERMINAL_NATIVE.md): PTY and PRoot components, and rebuilding the bundled source.
 
 ## References and acknowledgements
 
 - [Pi Coding Agent](https://github.com/earendil-works/pi): the main reference for Eta's agent runtime, including the agent loop, tool calling, steering, and transcript state management.
 - [OmniBot](https://github.com/omnimind-ai/OmniBot): a reference project for AI agents on Android.
-- [libxposed API](https://github.com/libxposed/api): the modern Xposed API.
 - [Miuix](https://github.com/compose-miuix-ui/miuix): the UI component library.
 
 ## License

@@ -87,8 +87,34 @@ internal class AgentTraceFormatter {
                     append(trimmedContent)
                 }.takeIf { it.isNotBlank() }
             }.getOrNull()
-            else -> null
+            else -> displayArgumentsFallback(toolCall)
         }
+
+    private fun displayArgumentsFallback(toolCall: AgentModelClient.ToolCall): String? =
+        runCatching {
+            val source = toolCall.argumentsJson.trim()
+            if (source.isEmpty() || source == "{}" || source == "null") return@runCatching null
+            val json = JSONObject(source)
+            if (json.length() == 0) return@runCatching null
+            val rendered = json
+                .keys()
+                .asSequence()
+                .filterNot { key -> HIDDEN_ARGUMENT_KEYS.contains(key) }
+                .map { key ->
+                    val value = json.opt(key)
+                    val text = if (value is String) value else value.toString()
+                    val compact = text.replace(Regex("\\s+"), " ").trim()
+                    val clipped = if (compact.length > MAX_FALLBACK_VALUE_CHARS) {
+                        compact.take(MAX_FALLBACK_VALUE_CHARS) + "…（已截断）"
+                    } else {
+                        compact
+                    }
+                    "$key = $clipped"
+                }
+                .joinToString(separator = "\n")
+                .redactDisplaySecrets()
+            rendered.takeIf { it.isNotBlank() }
+        }.getOrNull()
 
     private fun String.redactDisplaySecrets(): String =
         replace(SENSITIVE_ASSIGNMENT) { match ->
@@ -518,10 +544,12 @@ internal class AgentTraceFormatter {
         const val BROWSER_TOOL_NAME = "browser_use"
         const val MAX_DISPLAY_COMMAND_CHARS = 32_000
         const val MAX_WRITE_CONTENT_DISPLAY_CHARS = 20_000
+        const val MAX_FALLBACK_VALUE_CHARS = 2_000
         const val MAX_QUERY_SUMMARY_CHARS = 30
         const val MAX_LISTED_APP_NAMES = 3
         const val MAX_TERMINAL_PREVIEW_LINES = 3
         const val MAX_TERMINAL_PREVIEW_CHARS = 240
+        val HIDDEN_ARGUMENT_KEYS = setOf("screenshot", "image", "image_base64", "data_url")
         val SENSITIVE_ASSIGNMENT = Regex(
             """(?i)\b([A-Z0-9_]*(?:API[_-]?KEY|ACCESS[_-]?TOKEN|AUTH[_-]?TOKEN|TOKEN|PASSWORD|PASSWD|SECRET)[A-Z0-9_]*)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s;&|]+)"""
         )

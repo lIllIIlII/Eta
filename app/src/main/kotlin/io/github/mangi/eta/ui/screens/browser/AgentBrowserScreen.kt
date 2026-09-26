@@ -37,6 +37,7 @@ import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.AdsClick
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.GppMaybe
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lock
@@ -77,6 +78,7 @@ import androidx.core.net.toUri
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.browser.AgentBrowserSession
 import io.github.mangi.eta.agent.browser.BrowserSessionSnapshot
+import io.github.mangi.eta.agent.localserver.LocalChatServer
 import io.github.mangi.eta.ui.components.MiuixDialogActions
 import io.github.mangi.eta.ui.components.StatusError
 import kotlinx.coroutines.Dispatchers
@@ -144,6 +146,23 @@ internal fun AgentBrowserScreen(
         keyboard?.hide()
         launchBrowserAction {
             AgentBrowserSession.navigateFromUser(context.applicationContext, target)
+        }
+    }
+
+    val openLocalServer: () -> Unit = {
+        val endpoint = LocalChatServer.boundEndpoint
+        if (endpoint.isBlank()) {
+            Toast.makeText(
+                context,
+                context.getString(R.string.share_link_failed),
+                Toast.LENGTH_SHORT,
+            ).show()
+        } else {
+            focusManager.clearFocus()
+            keyboard?.hide()
+            launchBrowserAction {
+                AgentBrowserSession.navigateFromUser(context.applicationContext, "http://$endpoint")
+            }
         }
     }
 
@@ -221,6 +240,7 @@ internal fun AgentBrowserScreen(
                     }
                 }
             },
+            onOpenLocalServer = openLocalServer,
             onOpenExternal = {
                 val currentUrl = snapshot.url.takeIf { it.startsWith("http://") || it.startsWith("https://") }
                 if (currentUrl != null) {
@@ -266,6 +286,7 @@ private fun BrowserWindow(
     onBack: () -> Unit,
     onForward: () -> Unit,
     onRefresh: () -> Unit,
+    onOpenLocalServer: () -> Unit,
     onOpenExternal: () -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
@@ -284,6 +305,7 @@ private fun BrowserWindow(
             onBack = onBack,
             onForward = onForward,
             onRefresh = onRefresh,
+            onOpenLocalServer = onOpenLocalServer,
             onOpenExternal = onOpenExternal,
             onReset = onReset,
         )
@@ -324,6 +346,7 @@ private fun BrowserToolbar(
     onBack: () -> Unit,
     onForward: () -> Unit,
     onRefresh: () -> Unit,
+    onOpenLocalServer: () -> Unit,
     onOpenExternal: () -> Unit,
     onReset: () -> Unit,
 ) {
@@ -378,6 +401,12 @@ private fun BrowserToolbar(
             }
         }
 
+        BrowserControlButton(
+            icon = Icons.Rounded.Dns,
+            description = stringResource(R.string.browser_local_server),
+            enabled = true,
+            onClick = onOpenLocalServer,
+        )
         BrowserControlButton(
             icon = Icons.AutoMirrored.Rounded.OpenInNew,
             description = stringResource(R.string.browser_open_external),

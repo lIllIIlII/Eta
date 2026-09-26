@@ -15,9 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
-import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
+import io.github.mangi.eta.agent.localserver.LocalChatServer
 import io.github.mangi.eta.agent.device.AgentFileReferenceGateway
 import io.github.mangi.eta.agent.device.DeviceLocationProvider
 import io.github.mangi.eta.agent.device.RootAccess
@@ -149,6 +149,12 @@ internal class AgentAppState(
             searchQuery = "",
         )
     )
+        private set
+
+    var conversationShareLinkUrl by mutableStateOf<String?>(null)
+        private set
+
+    var conversationShareBusy by mutableStateOf(false)
         private set
 
     var toolsState by mutableStateOf(buildToolsState(appContext))
@@ -822,7 +828,7 @@ internal class AgentAppState(
         scope.launch(Dispatchers.IO) {
             try {
                 RuntimeConfigRepository.setSelectedModelId(modelId)
-                RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                RuntimeConfigRepository.syncRuntimeConfig()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Throwable) {
@@ -937,6 +943,120 @@ internal class AgentAppState(
         conversationUpdatedAt = conversationUpdatedAt + (conversationId to System.currentTimeMillis())
         refreshConversationSummaries()
         persistConversations()
+    }
+
+    fun beginConversationShareSelection(conversationId: String) {
+        conversationPaneState = conversationPaneState.copy(
+            shareSelecting = true,
+            shareSelection = setOf(conversationId),
+        )
+    }
+
+    fun toggleConversationShareSelection(conversationId: String) {
+        val current = conversationPaneState.shareSelection
+        conversationPaneState = conversationPaneState.copy(
+            shareSelection = if (conversationId in current) {
+                current - conversationId
+            } else {
+                current + conversationId
+            },
+        )
+    }
+
+    fun selectAllConversationsForShare() {
+        conversationPaneState = conversationPaneState.copy(
+            shareSelection = conversationsById.keys.toSet(),
+        )
+    }
+
+    fun exitConversationShareSelection() {
+        conversationPaneState = conversationPaneState.copy(
+            shareSelecting = false,
+            shareSelection = emptySet(),
+        )
+    }
+
+    fun dismissConversationShareLink() {
+        conversationShareLinkUrl = null
+    }
+
+    fun generateConversationShareImage(ids: Set<String>) {
+        val conversations = buildShareConversations(ids) ?: return
+        if (conversationShareBusy) return
+        conversationShareBusy = true
+        scope.launch(Dispatchers.IO) {
+            var savedUri: android.net.Uri? = null
+            try {
+                val html = ConversationShareHtmlBuilder.build(conversations)
+                val bitmap = ConversationImageRenderer.render(appContext, html)
+                if (bitmap != null) {
+                    savedUri = ConversationImageRenderer.saveToGallery(appContext, bitmap)
+                    bitmap.recycle()
+                }
+            } catch (_: Throwable) {
+                savedUri = null
+            } finally {
+                withContext(Dispatchers.Main) {
+                    conversationShareBusy = false
+                    if (savedUri != null) {
+                        launchImageShare(savedUri)
+                        Toast.makeText(
+                            appContext,
+                            appContext.getString(R.string.share_image_saved),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            appContext,
+                            appContext.getString(R.string.share_image_failed),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun generateConversationShareLink(ids: Set<String>) {
+        val selected = ids.ifEmpty { return }
+        val token = LocalChatServer.createShareToken(selected.toList())
+        if (token == null || LocalChatServer.boundEndpoint.isBlank()) {
+            Toast.makeText(
+                appContext,
+                appContext.getString(R.string.share_link_failed),
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
+        conversationShareLinkUrl = LocalChatServer.shareUrl(token)
+    }
+
+    private fun launchImageShare(uri: android.net.Uri) {
+        runCatching {
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            appContext.startActivity(Intent.createChooser(intent, null))
+        }
+    }
+
+    private fun buildShareConversations(ids: Set<String>): List<ConversationShareHtmlBuilder.SharedConversation>? {
+        val ordered = ids.mapNotNull { id ->
+            conversationsById[id]?.let { id to it }
+        }
+        if (ordered.isEmpty()) return null
+        return ordered
+            .sortedByDescending { (id, _) -> conversationUpdatedAt[id] ?: 0L }
+            .map { (id, state) ->
+                ConversationShareHtmlBuilder.SharedConversation(
+                    title = conversationTitles[id]?.takeIf { it.isNotBlank() }
+                        ?: appContext.getString(R.string.conversation_unnamed),
+                    updatedAtMillis = conversationUpdatedAt[id] ?: 0L,
+                    messages = state.messages,
+                )
+            }
     }
 
     fun exportConversationMarkdown(conversationId: String): String? {

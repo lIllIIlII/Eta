@@ -26,11 +26,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -85,12 +87,14 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
 import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 import top.yukonga.miuix.kmp.nav.core.rememberNavSystemCornerRadius
 import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
@@ -166,7 +170,7 @@ fun AgentAppRoot(
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
-        RuntimeConfigRepository.ensureDefaults(EtaApp.serviceInstance)
+        RuntimeConfigRepository.ensureDefaults()
     }
 
     LaunchedEffect(assistantConversationKey) {
@@ -256,6 +260,26 @@ fun AgentAppRoot(
             },
             onConversationDelete = { conversation ->
                 conversationDeleteTarget = conversation
+            },
+            onConversationShareSelect = { conversationId ->
+                agentState.beginConversationShareSelection(conversationId)
+            },
+            onConversationShareToggle = { conversationId ->
+                agentState.toggleConversationShareSelection(conversationId)
+            },
+            onConversationShareSelectAll = {
+                agentState.selectAllConversationsForShare()
+            },
+            onConversationShareExit = {
+                agentState.exitConversationShareSelection()
+            },
+            onConversationShareImage = { ids ->
+                agentState.exitConversationShareSelection()
+                agentState.generateConversationShareImage(ids)
+            },
+            onConversationShareLink = { ids ->
+                agentState.exitConversationShareSelection()
+                agentState.generateConversationShareLink(ids)
             },
             onOpenTools = { pushRoute(AppRoute.Tools) },
             onOpenSkills = { pushRoute(AppRoute.Skills) },
@@ -716,6 +740,39 @@ fun AgentAppRoot(
                     onConfirm = {
                         agentState.renameConversation(conversation.id, renameInput)
                         conversationRenameTarget = null
+                    },
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+        }
+    }
+
+    agentState.conversationShareLinkUrl?.let { linkUrl ->
+        val clipboard = LocalClipboardManager.current
+        WindowDialog(
+            show = true,
+            title = stringResource(R.string.share_link_title),
+            summary = stringResource(R.string.share_link_summary),
+            onDismissRequest = { agentState.dismissConversationShareLink() },
+        ) {
+            Column {
+                Text(
+                    text = linkUrl,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MiuixDialogActions(
+                    confirmText = stringResource(R.string.share_link_copy),
+                    onCancel = { agentState.dismissConversationShareLink() },
+                    onConfirm = {
+                        clipboard.setText(AnnotatedString(linkUrl))
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.share_link_copied),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        agentState.dismissConversationShareLink()
                     },
                     modifier = Modifier.padding(top = 16.dp),
                 )

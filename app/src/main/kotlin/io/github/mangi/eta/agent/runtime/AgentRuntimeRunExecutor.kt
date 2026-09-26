@@ -34,6 +34,9 @@ import io.github.mangi.eta.agent.voice.EtaAssistantOverlayService
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.core.safeLogType
 import io.github.mangi.eta.data.repository.AgentMemoryRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 
@@ -67,6 +70,15 @@ internal class AgentRuntimeRunExecutor(
         val completedRequest: AgentRuntimeWire.RunRequest? = null,
         val response: AgentModelClient.ModelResponse.Text? = null,
         val shouldUpdateHost: Boolean,
+    )
+
+    private data class RunPrelude(
+        val memoryEnabled: Boolean,
+        val uiPayload: AgentUiHandoffPayload?,
+        val conversationId: String?,
+        val roleplayContext: RoleplayRunContext?,
+        val memoryContext: AgentMemoryContext,
+        val mcpSnapshot: McpRunSnapshot,
     )
 
     private val appContext = context.applicationContext
@@ -106,17 +118,63 @@ internal class AgentRuntimeRunExecutor(
                 installedSkills = skillIndexService.listInstalledSkills()
                     .filter { SkillCompatibilityChecker.evaluate(it).available },
             )
-            val memoryEnabled = runBlocking { AgentMemoryRepository.isEnabled() }
-            val uiPayload = request.handoff
-                ?.takeIf { it.source == AgentRuntimeWire.AGENT_UI_HANDOFF_SOURCE }
-                ?.let { AgentUiHandoffPayload.from(it.payload) }
-            val conversationId = uiPayload?.conversationId
-                ?.takeIf { it.isNotBlank() }
-            val roleplayContext = conversationId?.let { id ->
-                runBlocking { RoleplayRunContext.resolve(appContext, id, request.config.contextWindow, memoryEnabled) }
+            val prelude = runBlocking {
+                coroutineScope {
+                    val memoryEnabledDeferred = async(Dispatchers.IO) {
+                        runCatching { AgentMemoryRepository.isEnabled() }.getOrDefault(false)
+                    }
+                    val mcpSnapshotDeferred = async(Dispatchers.IO) {
+                        runCatching { McpRunSnapshot.load() }.getOrElse { throwable ->
+                            AndroidAgentLogger.warnThrottled("agent_mcp_snapshot_failed") {
+                                "MCP tool snapshot unavailable: type=${throwable.safeLogType()}"
+                            }
+                            McpRunSnapshot.EMPTY
+                        }
+                    }
+                    val memoryEnabled = memoryEnabledDeferred.await()
+                    val uiPayload = request.handoff
+                        ?.takeIf { it.source == AgentRuntimeWire.AGENT_UI_HANDOFF_SOURCE }
+                        ?.let { AgentUiHandoffPayload.from(it.payload) }
+                    val conversationId = uiPayload?.conversationId
+                        ?.takeIf { it.isNotBlank() }
+                    val roleplayContextDeferred = async(Dispatchers.IO) {
+                        conversationId?.let { id ->
+                            RoleplayRunContext.resolve(appContext, id, request.config.contextWindow, memoryEnabled)
+                        }
+                    }
+                    val memoryContextDeferred = async(Dispatchers.IO) {
+                        if (!memoryEnabled) {
+                            AgentMemoryContext.DISABLED
+                        } else {
+                            runCatching {
+                                AgentMemoryContextBuilder.build(
+                                    snapshot = AgentMemoryRepository.snapshot(),
+                                    contextWindow = request.config.contextWindow,
+                                )
+                            }.getOrElse { throwable ->
+                                AndroidAgentLogger.warnThrottled("agent_memory_context_failed") {
+                                    "Agent memory context unavailable: type=${throwable.safeLogType()}"
+                                }
+                                AgentMemoryContextBuilder.empty(request.config.contextWindow)
+                            }
+                        }
+                    }
+                    RunPrelude(
+                        memoryEnabled = memoryEnabled,
+                        uiPayload = uiPayload,
+                        conversationId = conversationId,
+                        roleplayContext = roleplayContextDeferred.await(),
+                        memoryContext = memoryContextDeferred.await(),
+                        mcpSnapshot = mcpSnapshotDeferred.await(),
+                    )
+                }
             }
+            val memoryEnabled = prelude.memoryEnabled
+            val uiPayload = prelude.uiPayload
+            val conversationId = prelude.conversationId
+            val roleplayContext = prelude.roleplayContext
             if (request.operation == AgentRuntimeWire.OP_REWRITE_REPLY) {
-                require(roleplayContext != null) { "只有角色会话可以改写角色回复" }
+                require(roleplayContext != null && conversationId != null) { "只有角色会话可以改写角色回复" }
                 val target = request.rewriteTargetMessageId?.takeIf { it.isNotBlank() && it.length <= 256 }
                     ?: throw IllegalArgumentException("缺少有效的角色回复目标")
                 require(runBlocking {
@@ -128,30 +186,9 @@ internal class AgentRuntimeRunExecutor(
                     runBlocking { AgentMemoryRepository.isEnabled() }
                 }
             }
-            val memoryContext = if (memoryEnabled) {
-                runCatching {
-                    AgentMemoryContextBuilder.build(
-                        snapshot = AgentMemoryRepository.snapshot(),
-                        contextWindow = request.config.contextWindow,
-                    )
-                }.getOrElse { throwable ->
-                    AndroidAgentLogger.warnThrottled("agent_memory_context_failed") {
-                        "Agent memory context unavailable: type=${throwable.safeLogType()}"
-                    }
-                    AgentMemoryContextBuilder.empty(request.config.contextWindow)
-                }
-            } else {
-                AgentMemoryContext.DISABLED
-            }
+            val memoryContext = prelude.memoryContext
             val pendingSkillConflict = PendingSkillConflictCapabilityParser.parse(request.history)
-            val mcpSnapshot = runBlocking {
-                runCatching { McpRunSnapshot.load() }.getOrElse { throwable ->
-                    AndroidAgentLogger.warnThrottled("agent_mcp_snapshot_failed") {
-                        "MCP tool snapshot unavailable: type=${throwable.safeLogType()}"
-                    }
-                    McpRunSnapshot.EMPTY
-                }
-            }
+            val mcpSnapshot = prelude.mcpSnapshot
             val mcpTools = JSONArray().also(mcpSnapshot::appendModelTools)
             val executor = AgentLocalTools(
                 context = appContext,

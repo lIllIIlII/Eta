@@ -149,10 +149,12 @@ import io.github.mangi.eta.ui.model.SuggestionChipsMessageUi
 import io.github.mangi.eta.ui.model.SystemNoticeCode
 import io.github.mangi.eta.ui.model.SystemNoticeMessageUi
 import io.github.mangi.eta.ui.model.ThinkingMessageUi
+import io.github.mangi.eta.ui.model.TokenUsageUi
 import io.github.mangi.eta.ui.model.ToolActivityMessageUi
 import io.github.mangi.eta.ui.model.ToolActivityStatusUi
 import io.github.mangi.eta.ui.model.ToolSummaryMessageUi
 import io.github.mangi.eta.ui.model.UserMessageUi
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
@@ -948,8 +950,49 @@ private fun AgentMessageBlock(
                 }
             }
         }
+        if (!message.isStreaming && revealComplete && message.usage != null && !message.usage.isEmpty) {
+            TokenUsageWatermark(
+                usage = message.usage,
+                modifier = Modifier.padding(top = 3.dp, start = 2.dp),
+            )
+        }
     }
 }
+
+@Composable
+private fun TokenUsageWatermark(
+    usage: TokenUsageUi,
+    modifier: Modifier = Modifier,
+) {
+    val text = remember(usage) { usage.watermarkText() }
+    if (text.isBlank()) return
+    Text(
+        text = text,
+        style = MiuixTheme.textStyles.footnote2,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.45f),
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
+private fun TokenUsageUi.watermarkText(): String {
+    val parts = mutableListOf<String>()
+    inputTokens?.takeIf { it > 0 }?.let { parts.add("输入 ${formatTokenCount(it)}") }
+    outputTokens?.takeIf { it > 0 }?.let { parts.add("输出 ${formatTokenCount(it)}") }
+    cachedTokens?.takeIf { it > 0 }?.let { cached ->
+        val hitRate = inputTokens?.takeIf { it > 0 }?.let { input ->
+            "（命中率 ${cached * 100 / input}%）"
+        }.orEmpty()
+        parts.add("缓存 ${formatTokenCount(cached)}$hitRate")
+    }
+    reasoningTokens?.takeIf { it > 0 }?.let { parts.add("思考 ${formatTokenCount(it)}") }
+    contextTokens?.takeIf { it > 0 }?.let { parts.add("上下文 ${formatTokenCount(it)}") }
+    return parts.joinToString(" · ")
+}
+
+private fun formatTokenCount(tokens: Int): String =
+    String.format(Locale.US, "%,d", tokens)
 
 @Composable
 private fun StableMarkdown(
@@ -2459,6 +2502,19 @@ private fun ToolActivityInline(
                     )
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
+                val toolLabel = toolDisplayName(message.toolName)
+                Text(
+                    text = if (toolLabel != message.toolName) {
+                        "$toolLabel · ${message.toolName}"
+                    } else {
+                        message.toolName
+                    },
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.75f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
                 if (!message.command.isNullOrBlank()) {
                     ToolCommandBlock(
                         command = message.command,

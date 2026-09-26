@@ -109,7 +109,7 @@ internal fun ModelProviderDetailScreen(
     }
 
     LaunchedEffect(Unit) {
-        RuntimeConfigRepository.ensureDefaults(EtaApp.serviceInstance)
+        RuntimeConfigRepository.ensureDefaults()
     }
 
     if (provider == null && draft == null) {
@@ -447,9 +447,7 @@ private fun ProviderConfigTab(
                                     if (added.isEnabled) {
                                         RuntimeConfigRepository.setSelectedProviderId(added.id)
                                     }
-                                    RuntimeConfigRepository.syncToRemotePreferences(
-                                        EtaApp.serviceInstance
-                                    )
+                                    RuntimeConfigRepository.syncRuntimeConfig()
                                     status = context.getString(R.string.capability_provider_created)
                                     creationCommitted = true
                                     onCreated(added.id)
@@ -458,9 +456,7 @@ private fun ProviderConfigTab(
                                     if (built.isEnabled) {
                                         RuntimeConfigRepository.setSelectedProviderId(built.id)
                                     }
-                                    RuntimeConfigRepository.syncToRemotePreferences(
-                                        EtaApp.serviceInstance
-                                    )
+                                    RuntimeConfigRepository.syncRuntimeConfig()
                                     status = when {
                                         !built.isEnabled -> context.getString(R.string.page_saved_provider_not_enabled_7afa54)
                                         else -> context.getString(R.string.capability_provider_saved)
@@ -547,7 +543,7 @@ private fun ProviderConfigTab(
                         isWorking = true
                         try {
                             ProviderRepository.deleteProvider(provider.id)
-                            RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                            RuntimeConfigRepository.syncRuntimeConfig()
                             showDeleteDialog = false
                             onDeleted()
                         } catch (cancelled: CancellationException) {
@@ -584,7 +580,7 @@ private fun ProviderConfigTab(
                         isWorking = true
                         try {
                             ProviderRepository.resetBuiltIn(provider.id)
-                            RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                            RuntimeConfigRepository.syncRuntimeConfig()
                             status = context.getString(R.string.page_reset_a0cc65)
                             showResetDialog = false
                         } catch (cancelled: CancellationException) {

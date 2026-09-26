@@ -7,6 +7,8 @@ data class ConversationPaneUiState(
     val conversations: List<ConversationSummaryUi>,
     val selectedConversationId: String?,
     val searchQuery: String,
+    val shareSelecting: Boolean = false,
+    val shareSelection: Set<String> = emptySet(),
 )
 
 @Immutable

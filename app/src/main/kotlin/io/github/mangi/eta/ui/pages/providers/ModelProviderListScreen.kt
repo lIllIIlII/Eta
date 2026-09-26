@@ -126,7 +126,7 @@ internal fun ModelProviderListScreen(
     }
 
     LaunchedEffect(Unit) {
-        RuntimeConfigRepository.ensureDefaults(EtaApp.serviceInstance)
+        RuntimeConfigRepository.ensureDefaults()
     }
 
     val filteredProviders = remember(providers, searchQuery) {
@@ -208,7 +208,7 @@ internal fun ModelProviderListScreen(
                             onSelect = {
                                 scope.launch {
                                     RuntimeConfigRepository.setSelectedProviderId(provider.id)
-                                    RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                                    RuntimeConfigRepository.syncRuntimeConfig()
                                 }
                             },
                         )
@@ -267,7 +267,7 @@ internal fun ModelProviderListScreen(
                     scope.launch {
                         providerToDelete?.let { provider ->
                             ProviderRepository.deleteProvider(provider.id)
-                            RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                            RuntimeConfigRepository.syncRuntimeConfig()
                         }
                         providerToDelete = null
                     }

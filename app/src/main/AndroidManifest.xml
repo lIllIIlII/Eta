@@ -39,7 +39,7 @@
     <application
         android:name=".EtaApp"
         android:allowBackup="false"
-        android:description="@string/xposed_description"
+        android:description="@string/app_description"
         android:enableOnBackInvokedCallback="true"
         android:hasCode="true"
         android:icon="@mipmap/ic_launcher"

@@ -3,7 +3,7 @@
   <string name="settings_language">语言</string>
   <string name="settings_language_system">跟随系统</string>
   <string name="app_name">Eta</string>
-  <string name="xposed_description">系统级 AI Agent，接管小布与小爱，解锁 Gemini 与一圈即搜，集成浏览器、终端与设备工具</string>
+  <string name="app_description">注重隐私的 AI Agent，集成浏览器、终端与设备工具，内置本地聊天记录服务器。</string>
   <string name="agent_accessibility_label">Eta Agent</string>
   <string name="agent_accessibility_description">读取屏幕内容并执行点击、滑动、文字输入等操作，协助 Agent 完成任务。</string>
   <string name="notification_history_service_label">Eta 通知历史</string>
@@ -1281,4 +1281,17 @@
     <string name="provider_config_import_confirm_title">导入模型配置</string>
     <string name="provider_config_import_confirm_summary">将把文件中的模型配置合并到当前列表，相同 ID 的配置会被覆盖，是否继续？</string>
     <string name="provider_config_failed">操作失败</string>
+  <string name="action_share">分享</string>
+  <string name="share_select_title">选择会话（已选 %1$d 个）</string>
+  <string name="share_select_all">全选</string>
+  <string name="share_action_image">生成长图</string>
+  <string name="share_action_link">临时链接</string>
+  <string name="share_link_title">临时网页链接</string>
+  <string name="share_link_summary">同一网络内的设备在有效期内可通过浏览器打开该链接查看记录；本地服务器停止后链接即失效。</string>
+  <string name="share_link_copy">复制链接</string>
+  <string name="share_link_copied">链接已复制</string>
+  <string name="share_image_saved">长图已保存到相册 Pictures/Eta</string>
+  <string name="share_image_failed">长图生成失败</string>
+  <string name="share_link_failed">链接创建失败，请确认本地聊天记录服务器已开启</string>
+  <string name="browser_local_server">打开本地聊天记录服务器</string>
 </resources>

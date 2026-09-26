@@ -1,6 +1,5 @@
 package io.github.mangi.eta.data.repository
 
-import android.content.SharedPreferences
 import io.github.mangi.eta.agent.model.AgentModelClient
 import io.github.mangi.eta.config.Prefs
 import io.github.mangi.eta.data.datastore.SettingsDataStore
@@ -17,7 +16,6 @@ import io.github.mangi.eta.data.model.selectedOrFirstModel
 import io.github.mangi.eta.data.provider.BuiltinProviders
 import io.github.mangi.eta.data.provider.ProviderSourceRegistry
 import io.github.mangi.eta.data.provider.ReasoningCapabilityResolver
-import io.github.libxposed.service.XposedService
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -74,16 +72,21 @@ internal object RuntimeConfigRepository {
         return buildRuntimeConfig(provider, model)
     }
 
-    suspend fun syncToRemotePreferences(service: XposedService?): Boolean {
-        val prefs = Prefs.remotePreferencesForUi(service) ?: return false
-        val config = currentRuntimeConfig() ?: return clearRuntimeConfig(prefs)
-        return writeRuntimeConfig(prefs, config)
+    suspend fun syncRuntimeConfig(): Boolean {
+        val config = currentRuntimeConfig() ?: return Prefs.setLocalAgentString(
+            Prefs.Keys.AGENT_RUNTIME_CONFIG_JSON,
+            "",
+        )
+        return Prefs.setLocalAgentString(
+            Prefs.Keys.AGENT_RUNTIME_CONFIG_JSON,
+            runtimeConfigJson(config),
+        )
     }
 
-    suspend fun ensureDefaults(service: XposedService?) {
+    suspend fun ensureDefaults() {
         ProviderRepository.ensureBuiltInsMerged()
         ProviderRepository.repairSelection()
-        syncToRemotePreferences(service)
+        syncRuntimeConfig()
     }
 
     fun runtimeConfigJson(config: AgentModelClient.ModelConfig): String =
@@ -136,20 +139,4 @@ internal object RuntimeConfigRepository {
         )
     }
 
-    private fun writeRuntimeConfig(
-        prefs: SharedPreferences,
-        config: AgentModelClient.ModelConfig,
-    ): Boolean =
-        runCatching {
-            prefs.edit()
-                .putString(Prefs.Keys.AGENT_RUNTIME_CONFIG_JSON, runtimeConfigJson(config))
-                .commit()
-        }.getOrDefault(false)
-
-    private fun clearRuntimeConfig(prefs: SharedPreferences): Boolean =
-        runCatching {
-            prefs.edit()
-                .remove(Prefs.Keys.AGENT_RUNTIME_CONFIG_JSON)
-                .commit()
-        }.getOrDefault(false)
 }

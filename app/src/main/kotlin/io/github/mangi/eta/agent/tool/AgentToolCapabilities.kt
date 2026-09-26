@@ -4,9 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
-import io.github.mangi.eta.agent.accessibility.AccessibilityProtectionClient
 import io.github.mangi.eta.agent.device.AgentNotificationHistoryService
 import io.github.mangi.eta.agent.device.RootAccess
 import java.util.Locale
@@ -58,10 +56,9 @@ internal data class AgentToolCapabilities(
 
         fun capture(context: Context): AgentToolCapabilities = AgentToolCapabilities(
             rootAvailable = RootAccess.isGranted,
-            lsposedAvailable = EtaApp.serviceInstance != null,
+            lsposedAvailable = false,
             accessibilityAvailable = AgentAccessibilityService.isAvailable(),
-            accessibilityRecoveryAvailable = EtaApp.serviceInstance != null &&
-                AccessibilityProtectionClient.isEnabled(context),
+            accessibilityRecoveryAvailable = false,
             notificationsAllowed = AgentNotificationHistoryService.isEnabled(context),
             usageAllowed = AgentPersonalContextTools.hasUsageAccess(context),
             locationAllowed = context.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==

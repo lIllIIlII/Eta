@@ -3,7 +3,7 @@
   <string name="settings_language">Language</string>
   <string name="settings_language_system">Follow system</string>
   <string name="app_name">Eta</string>
-  <string name="xposed_description">A system-level AI agent that takes over Breeno and Super XiaoAI, enables Gemini and Circle to Search, and integrates browser, terminal, and device tools.</string>
+  <string name="app_description">A privacy-first AI agent with browser, terminal, and device tools, plus a built-in local chat history server.</string>
   <string name="agent_accessibility_label">Eta Agent</string>
   <string name="agent_accessibility_description">Read screen content and perform taps, swipes, text input, and other actions to help the agent complete tasks.</string>
   <string name="notification_history_service_label">Eta notification history</string>
@@ -1297,4 +1297,17 @@
     <string name="provider_config_import_confirm_title">Import model config</string>
     <string name="provider_config_import_confirm_summary">Providers in the file will be merged into the current list. Entries with the same ID will be overwritten. Continue?</string>
     <string name="provider_config_failed">Operation failed</string>
+  <string name="action_share">Share</string>
+  <string name="share_select_title">Select conversations (%1$d)</string>
+  <string name="share_select_all">Select all</string>
+  <string name="share_action_image">Generate long image</string>
+  <string name="share_action_link">Temporary link</string>
+  <string name="share_link_title">Temporary share link</string>
+  <string name="share_link_summary">Anyone on the same network can open this link in a browser within the validity period. The link becomes invalid when the local server stops.</string>
+  <string name="share_link_copy">Copy link</string>
+  <string name="share_link_copied">Link copied</string>
+  <string name="share_image_saved">Long image saved to Pictures/Eta</string>
+  <string name="share_image_failed">Failed to generate long image</string>
+  <string name="share_link_failed">Failed to create link; make sure the local chat server is running</string>
+  <string name="browser_local_server">Open local chat history server</string>
 </resources>

@@ -87,7 +87,7 @@ internal object ProviderConfigTransfer {
             ProviderRepository.ensureBuiltInsMerged()
             ProviderRepository.repairSelection()
             runCatching {
-                RuntimeConfigRepository.syncToRemotePreferences(EtaApp.serviceInstance)
+                RuntimeConfigRepository.syncRuntimeConfig()
             }
             document.summary()
         }

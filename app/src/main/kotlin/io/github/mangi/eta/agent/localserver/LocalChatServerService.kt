@@ -92,5 +92,11 @@ class LocalChatServerService : Service() {
                 context.stopService(Intent(context, LocalChatServerService::class.java))
             }
         }
+
+        fun restart(context: Context) {
+            LocalChatServer.stop()
+            stop(context)
+            start(context)
+        }
     }
 }

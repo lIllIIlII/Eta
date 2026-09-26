@@ -43,15 +43,20 @@ import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.TheaterComedy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -168,6 +173,12 @@ fun ConversationSidePaneScaffold(
     onConversationRename: (ConversationSummaryUi) -> Unit,
     onConversationExport: (ConversationSummaryUi) -> Unit,
     onConversationDelete: (ConversationSummaryUi) -> Unit,
+    onConversationShareSelect: (String) -> Unit,
+    onConversationShareToggle: (String) -> Unit,
+    onConversationShareSelectAll: () -> Unit,
+    onConversationShareExit: () -> Unit,
+    onConversationShareImage: (Set<String>) -> Unit,
+    onConversationShareLink: (Set<String>) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenModelProviders: () -> Unit,
     onOpenTools: () -> Unit,
@@ -259,6 +270,12 @@ fun ConversationSidePaneScaffold(
             onConversationRename = onConversationRename,
             onConversationExport = onConversationExport,
             onConversationDelete = onConversationDelete,
+            onConversationShareSelect = onConversationShareSelect,
+            onConversationShareToggle = onConversationShareToggle,
+            onConversationShareSelectAll = onConversationShareSelectAll,
+            onConversationShareExit = onConversationShareExit,
+            onConversationShareImage = onConversationShareImage,
+            onConversationShareLink = onConversationShareLink,
             onOpenSettings = onOpenSettings,
             onOpenModelProviders = onOpenModelProviders,
             onOpenTools = onOpenTools,
@@ -350,6 +367,12 @@ private fun ConversationPanePanel(
     onConversationRename: (ConversationSummaryUi) -> Unit,
     onConversationExport: (ConversationSummaryUi) -> Unit,
     onConversationDelete: (ConversationSummaryUi) -> Unit,
+    onConversationShareSelect: (String) -> Unit,
+    onConversationShareToggle: (String) -> Unit,
+    onConversationShareSelectAll: () -> Unit,
+    onConversationShareExit: () -> Unit,
+    onConversationShareImage: (Set<String>) -> Unit,
+    onConversationShareLink: (Set<String>) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenModelProviders: () -> Unit,
     onOpenTools: () -> Unit,
@@ -362,6 +385,7 @@ private fun ConversationPanePanel(
     val query = state.searchQuery.trim()
     val groups = remember(state.conversations) { state.conversations.groupForDrawer() }
     val density = LocalDensity.current
+    val shareSelecting = state.shareSelecting
 
     Surface(
         modifier = modifier
@@ -413,10 +437,19 @@ private fun ConversationPanePanel(
                             ConversationTextRow(
                                 conversation = conversation,
                                 selected = conversation.id == state.selectedConversationId,
-                                onClick = { onConversationSelected(conversation.id) },
+                                shareSelecting = shareSelecting,
+                                shareChecked = conversation.id in state.shareSelection,
+                                onClick = {
+                                    if (shareSelecting) {
+                                        onConversationShareToggle(conversation.id)
+                                    } else {
+                                        onConversationSelected(conversation.id)
+                                    }
+                                },
                                 onRename = { onConversationRename(conversation) },
                                 onExport = { onConversationExport(conversation) },
                                 onDelete = { onConversationDelete(conversation) },
+                                onShare = { onConversationShareSelect(conversation.id) },
                             )
                         }
                     }
@@ -438,10 +471,18 @@ private fun ConversationPanePanel(
                         .padding(horizontal = DrawerMetrics.PaneHorizontalPadding),
                 ) {
                     Spacer(modifier = Modifier.height(DrawerMetrics.TopInset))
-                    PaneActionBar(
-                        query = state.searchQuery,
-                        onSearchChange = onSearchChange,
-                    )
+                    if (shareSelecting) {
+                        ShareSelectionActionBar(
+                            selectedCount = state.shareSelection.size,
+                            onSelectAll = onConversationShareSelectAll,
+                            onExit = onConversationShareExit,
+                        )
+                    } else {
+                        PaneActionBar(
+                            query = state.searchQuery,
+                            onSearchChange = onSearchChange,
+                        )
+                    }
                     Spacer(modifier = Modifier.height(DrawerMetrics.AfterActionBar))
                 }
             }
@@ -462,14 +503,22 @@ private fun ConversationPanePanel(
                         .padding(horizontal = DrawerMetrics.PaneHorizontalPadding),
                 ) {
                     Spacer(modifier = Modifier.height(DrawerMetrics.DockTopGap))
-                    PaneDock(
-                        onOpenSettings = onOpenSettings,
-                        onOpenModelProviders = onOpenModelProviders,
-                        onOpenTools = onOpenTools,
-                        onOpenSkills = onOpenSkills,
-                        onOpenCharacters = onOpenCharacters,
-                        onOpenPermissions = onOpenPermissions,
-                    )
+                    if (shareSelecting) {
+                        ShareActionsDock(
+                            enabled = state.shareSelection.isNotEmpty(),
+                            onShareImage = { onConversationShareImage(state.shareSelection) },
+                            onShareLink = { onConversationShareLink(state.shareSelection) },
+                        )
+                    } else {
+                        PaneDock(
+                            onOpenSettings = onOpenSettings,
+                            onOpenModelProviders = onOpenModelProviders,
+                            onOpenTools = onOpenTools,
+                            onOpenSkills = onOpenSkills,
+                            onOpenCharacters = onOpenCharacters,
+                            onOpenPermissions = onOpenPermissions,
+                        )
+                    }
                     Spacer(modifier = Modifier.height(DrawerMetrics.BottomInset))
                 }
             }
@@ -598,6 +647,9 @@ private fun ConversationTextRow(
     onRename: () -> Unit,
     onExport: () -> Unit,
     onDelete: () -> Unit,
+    shareSelecting: Boolean = false,
+    shareChecked: Boolean = false,
+    onShare: () -> Unit = {},
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
@@ -609,17 +661,17 @@ private fun ConversationTextRow(
                 .heightIn(min = DrawerMetrics.RowMinHeight)
                 .clip(RoundedCornerShape(DrawerMetrics.RowCornerRadius))
                 .background(
-                    if (selected) {
-                        MiuixTheme.colorScheme.surfaceContainerHigh
-                    } else {
-                        Color.Transparent
+                    when {
+                        shareSelecting && shareChecked -> MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        selected -> MiuixTheme.colorScheme.surfaceContainerHigh
+                        else -> Color.Transparent
                     },
                 )
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showActionMenu = true
+                        if (!shareSelecting) showActionMenu = true
                     },
                 )
                 .padding(
@@ -628,6 +680,32 @@ private fun ConversationTextRow(
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (shareSelecting) {
+                Box(
+                    modifier = Modifier
+                        .padding(end = DrawerMetrics.ActiveDotGap)
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (shareChecked) {
+                                MiuixTheme.colorScheme.primary
+                            } else {
+                                MiuixTheme.colorScheme.surfaceContainerHigh
+                            },
+                        ),
+                ) {
+                    if (shareChecked) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(13.dp),
+                        )
+                    }
+                }
+            }
             Column(modifier = Modifier.weight(1f)) {
             val title = conversation.title.ifBlank { conversation.preview }
             Text(
@@ -667,6 +745,7 @@ private fun ConversationTextRow(
             val renameText = stringResource(R.string.action_rename)
             val exportText = stringResource(R.string.action_export)
             val deleteText = stringResource(R.string.action_delete)
+            val shareText = stringResource(R.string.action_share)
             val renameItem = remember(renameText) {
                 DropdownItem(
                     text = renameText,
@@ -685,6 +764,18 @@ private fun ConversationTextRow(
                     icon = { modifier ->
                         Icon(
                             imageVector = Icons.Rounded.Download,
+                            contentDescription = null,
+                            modifier = modifier.size(DrawerMetrics.ActionIconSize),
+                        )
+                    },
+                )
+            }
+            val shareItem = remember(shareText) {
+                DropdownItem(
+                    text = shareText,
+                    icon = { modifier ->
+                        Icon(
+                            imageVector = Icons.Rounded.Share,
                             contentDescription = null,
                             modifier = modifier.size(DrawerMetrics.ActionIconSize),
                         )
@@ -712,7 +803,7 @@ private fun ConversationTextRow(
             ListPopupColumn {
                 DropdownImpl(
                     item = renameItem,
-                    optionSize = 3,
+                    optionSize = 4,
                     isSelected = false,
                     index = 0,
                     onSelectedIndexChange = {
@@ -722,7 +813,7 @@ private fun ConversationTextRow(
                 )
                 DropdownImpl(
                     item = exportItem,
-                    optionSize = 3,
+                    optionSize = 4,
                     isSelected = false,
                     index = 1,
                     onSelectedIndexChange = {
@@ -731,10 +822,20 @@ private fun ConversationTextRow(
                     },
                 )
                 DropdownImpl(
-                    item = deleteItem,
-                    optionSize = 3,
+                    item = shareItem,
+                    optionSize = 4,
                     isSelected = false,
                     index = 2,
+                    onSelectedIndexChange = {
+                        showActionMenu = false
+                        onShare()
+                    },
+                )
+                DropdownImpl(
+                    item = deleteItem,
+                    optionSize = 4,
+                    isSelected = false,
+                    index = 3,
                     dropdownColors = deleteColors,
                     onSelectedIndexChange = {
                         showActionMenu = false
@@ -760,6 +861,120 @@ private fun EmptyConversations(isSearching: Boolean) {
             vertical = DrawerMetrics.EmptyVerticalPadding,
         ),
     )
+}
+
+@Composable
+private fun ShareSelectionActionBar(
+    selectedCount: Int,
+    onSelectAll: () -> Unit,
+    onExit: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.CheckCircle,
+            contentDescription = null,
+            tint = MiuixTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.share_select_title, selectedCount),
+            style = MiuixTheme.textStyles.body1,
+            fontWeight = FontWeight.SemiBold,
+            color = MiuixTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = stringResource(R.string.share_select_all),
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onSelectAll)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+        )
+        Text(
+            text = stringResource(R.string.action_cancel),
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onExit)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun ShareActionsDock(
+    enabled: Boolean,
+    onShareImage: () -> Unit,
+    onShareLink: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        ShareActionEntry(
+            icon = Icons.Rounded.Image,
+            label = stringResource(R.string.share_action_image),
+            enabled = enabled,
+            onClick = onShareImage,
+            modifier = Modifier.weight(1f),
+        )
+        ShareActionEntry(
+            icon = Icons.Rounded.Link,
+            label = stringResource(R.string.share_action_link),
+            enabled = enabled,
+            onClick = onShareLink,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ShareActionEntry(
+    icon: ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(DrawerMetrics.DockEntryCornerRadius))
+            .clickable(enabled = enabled, onClickLabel = label, onClick = onClick)
+            .padding(vertical = DrawerMetrics.DockEntryVerticalPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(DrawerMetrics.DockEntryIconSize),
+            tint = if (enabled) {
+                MiuixTheme.colorScheme.primary
+            } else {
+                MiuixTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            },
+        )
+        Spacer(modifier = Modifier.height(DrawerMetrics.DockEntryLabelGap))
+        Text(
+            text = label,
+            style = MiuixTheme.textStyles.footnote1,
+            color = if (enabled) {
+                MiuixTheme.colorScheme.onSurface
+            } else {
+                MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.5f)
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable

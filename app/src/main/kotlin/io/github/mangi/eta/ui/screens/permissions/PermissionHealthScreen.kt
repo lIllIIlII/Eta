@@ -74,7 +74,6 @@ private fun PermissionItemRow(
         "notification" -> Icons.Rounded.Notifications
         "root" -> Icons.Rounded.Key
         "shizuku" -> Icons.Rounded.Memory
-        "xposed" -> Icons.Rounded.AccountTree
         "background" -> Icons.Rounded.History
         "app_list" -> Icons.Rounded.Dashboard
         "location" -> Icons.Rounded.LocationOn

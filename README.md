@@ -12,11 +12,11 @@ Eta 是为手机和移动设备设计的 AI Agent，结合了 [Codex](https://op
 
 - **系统操作**：直接调用 Android API，完成设置闹钟、控制媒体、调整音量等操作。
 - **厂商数据**：在对应系统与授权条件下，直接检索小布记忆、便签、录音摘要等数据。
-- **系统入口**：通过 Xposed 接管电源键、小布和超级小爱，从熟悉的助手入口发起 Eta 任务。
+- **系统入口**：作为系统助手应用，从熟悉的助手入口发起 Eta 任务。
 
 Eta 内置 Agent Runtime，通过 Agent Loop 编排模型调用、工具执行和结果反馈，并支持 Skills 与 MCP 扩展。使用 AI 功能需要自备模型服务的 **API Key（BYOK）**，模型与服务商由你选择。
 
-支持 **Android 14 及以上版本**，App 本体不限手机品牌，基础功能无需 Root。Root 和 LSPosed 可进一步扩展系统访问与助手入口，具体能力取决于授权和 ROM 适配。
+支持 **Android 14 及以上版本**，App 本体不限手机品牌，基础功能无需 Root。Root 可进一步扩展系统访问，具体能力取决于授权和 ROM 适配。
 
 [下载 APK](https://github.com/Mangi-11/Eta/releases) · [快速开始](#快速开始) · [为什么做 Eta](#为什么做-eta)
 
@@ -85,20 +85,16 @@ Provider 层支持 OpenAI-compatible Chat Completions、Responses API 和 Anthro
 
 提供商配置中的“自定义请求头”默认折叠，可添加、编辑和删除名称/值，保存后用于模型列表与对话请求；“测试连接”会使用尚未保存的配置。支持覆盖 `User-Agent`，认证和传输请求头仍由 Eta 管理。连接 OpenCode 官方端点时，Eta 自动发送每段对话稳定的 `x-opencode-session`，无需手动填写；默认客户端标识为 `Eta`。
 
+## 本地聊天记录服务器
+
+- **自动开启**：随应用自动启动的局域网 HTTP 服务器，无需手动操作，默认开启。
+- **查看记录**：同一网络内的设备用浏览器打开提示的地址，即可查看全部聊天记录。
+- **临时分享**：可多选会话生成长图（保存到相册并分享），或生成临时网页链接（默认 24 小时有效）。
+- **端口管理**：在 Agent 浏览器中可一键打开服务器页面，查看当前地址并修改端口。
+
 ## 系统助手入口
 
-- **长按电源键**：选择唤起系统默认助手、Gemini 或 Eta。
-- **Eta 系统助手**：从电源键入口打开 Eta 文字对话面板，支持屏幕上下文与连续追问。
-- **小布 / 超级小爱接管**：保留厂商助手的电源键入口，将请求交给 Eta，使用自己配置的模型。
-
-电源键接管需要 LSPosed 与对应系统支持。
-
-## 解锁 Gemini 与一圈即搜
-
-- **Gemini 解锁**：补齐 Gemini 系统助手能力，支持 Google App 系统化、锁屏与亮屏语音输入、息屏热词补偿。
-- **一圈即搜**：解锁一圈即搜，通过手势条长按或双指识屏触发。
-
-需要 LSPosed 与对应系统支持，具体功能与适配说明见[技术实现](docs/TECHNICAL.md)。
+- **Eta 系统助手**：在系统设置中将 Eta 设为默认助手，即可从助手入口发起 Eta 任务。
 
 ## 权限与数据边界
 
@@ -107,7 +103,7 @@ Provider 层支持 OpenAI-compatible Chat Completions、Responses API 和 Anthro
 - **数据去向**：任务所需的对话、图片和工具结果会发送给配置的模型服务；本地 Runtime 不代表本地推理。自定义 HTTP 地址会明文传输 API Key 与请求内容。
 - **本机记录**：敏感工具及 MCP 的原始参数、结果不写入持久会话，模型回复仍会保存。通知历史在授权后保存最近 7 天、最多 1000 条；MCP 认证令牌加密保存。
 - **会话与备份**：支持消息复制、编辑、从某轮删除和回复重新生成；单个对话可导出为 Markdown，也可整体导入导出对话、模型配置、角色资料与记忆；备份包含 API Key。分享角色卡只导出角色设定和卡片图片，不包含私人对话与记忆。
-- **运行边界**：任务可停止或接管。后台运行受 Android 与厂商进程管理影响，强停或重启后需手动启动；系统与应用更新也可能需要重新适配 Hook。
+- **运行边界**：任务可停止或接管。后台运行受 Android 与厂商进程管理影响，强停或重启后需手动启动。
 
 ## 快速开始
 
@@ -117,7 +113,6 @@ Provider 层支持 OpenAI-compatible Chat Completions、Responses API 和 Anthro
 
 - **普通设备**：Android 14+，可使用聊天、浏览器、记忆、Skills、MCP、普通终端与私有工作区；GUI 和本机信息读取按需授权。Linux 支持对应的 64 位设备。
 - **Root 设备**：进一步开放系统设置修改、应用管理、受保护文件与专用个人数据检索，以及 Root Shell 和 chroot。
-- **LSPosed 与适配 ROM**：开放厂商助手接管、系统快捷入口及 Google 能力增强；部分功能另需 Root。
 
 联系人、短信、日历等专用检索目前仍需要 Root。完整条件与验证范围见[设备支持说明](docs/ROOTLESS_SUPPORT.md)。
 
@@ -149,7 +144,7 @@ Android 虽然也有 Shell，但普通 App 能访问的目录、系统能力和�
 
 我既是第三方开发者，也是 Android 玩机用户，没有预装合作和自有生态的商业包袱，所以愿意在系统适配上做得更激进一些，尽可能把手机已有的能力开放给用户自己选择的模型。
 
-Eta 在这一层做适配：通过 Xposed 接管小布、超级小爱和电源键入口，直接调用 Android 系统 API，并检索小布记忆、便签、录音摘要等已适配的数据源。Shell 与 Linux 提供计算环境，GUI Agent 覆盖缺少接口的应用操作。这些能力共用同一套 Agent Runtime，让模型既能了解手机上的事情，也有工具把事情做下去。
+Eta 在这一层做适配：作为系统助手应用接收助手请求，直接调用 Android 系统 API，并检索小布记忆、便签、录音摘要等已适配的数据源。Shell 与 Linux 提供计算环境，GUI Agent 覆盖缺少接口的应用操作。这些能力共用同一套 Agent Runtime，让模型既能了解手机上的事情，也有工具把事情做下去。
 
 我也不认为每件事都值得交给 AI。几次点击就能完成的操作，如果要多花时间、支付调用费用，还得盯着模型纠错，我宁愿自己动手。我更期待它帮我处理需要结合本机信息、跨应用重复操作，或不方便手动完成的任务。手机 Agent 的价值取决于对系统能力、本机数据和移动交互的理解与适配，功能数量本身不足以说明产品是否好用。
 
@@ -172,14 +167,12 @@ Eta 先从现有 Android 上的模型、上下文与工具做起。真正落地�
 - [设备支持与权限边界](docs/ROOTLESS_SUPPORT.md)：普通设备、Root、文件工作区与后台运行。
 - [技术实现](docs/TECHNICAL.md)：设备工具、数据检索、浏览器、终端与系统集成。
 - [Agent Runtime](docs/AGENT_RUNTIME.md)：Agent Loop、Provider、steering、transcript 与结果恢复。
-- [HyperOS 系统入口](docs/HYPEROS_SYSTEM_ENTRY.md)：电源键、一圈即搜的适配条件与验证边界。
 - [终端原生组件](docs/TERMINAL_NATIVE.md)：PTY、PRoot 及随包源码的构建方式。
 
 ## 参考与致谢
 
 - [Pi Coding Agent](https://github.com/earendil-works/pi)：Eta Agent Runtime 的核心参考，包括 Agent Loop、Tool Calling、steering 与 transcript 状态管理。
 - [OmniBot](https://github.com/omnimind-ai/OmniBot)：Android AI Agent 方向的参考项目。
-- [libxposed API](https://github.com/libxposed/api)：现代 Xposed API。
 - [Miuix](https://github.com/compose-miuix-ui/miuix)：UI 组件库。
 
 ## 许可证

@@ -162,13 +162,6 @@ internal object FakeAgentUiStates {
                 primaryActionLabel = "配置",
             ),
             PermissionHealthItemUi(
-                id = "xposed",
-                title = "Hook / Xposed",
-                summary = "框架未激活，系统增强能力不可用",
-                status = PermissionStatusUi.Missing,
-                primaryActionLabel = "查看",
-            ),
-            PermissionHealthItemUi(
                 id = "background",
                 title = "后台保活",
                 summary = "电池优化未关闭，长任务可能被中断",
